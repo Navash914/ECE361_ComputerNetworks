@@ -45,17 +45,14 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    printf("ready to receive\n");
-
     num_bytes = recvfrom(socketfd, buf, BUF_SIZE-1, FLAGS, (struct sockaddr *) &client_addr, &client_addr_len);
     if (num_bytes < 0) {
         printf("Error receiving message\n");
         exit(1);
     }
 
-    printf("received, ready to send\n");
-
     char msg[4];
+    printf("Buf: %s\n", buf);
 
     if (strcmp(buf, "ftp") == 0)
         strcpy(msg, "yes\0");

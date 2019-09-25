@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 
-    printf("Please input a message in the following format: 'ftp <file_name>\n'");
+    printf("Please input a message in the following format: 'ftp <file_name>'\n");
 	if (scanf("%s %s", buf, filename) == EOF) {
         printf("Error in input format\n");
         close(socketfd);
@@ -57,16 +57,12 @@ int main(int argc, char **argv) {
 		exit(0);
 	}
 
-    printf("ready to send\n");
-
-    num_bytes = sendto(socketfd, "ftp", strlen("ftp"), FLAGS, (struct sockaddr *) &server_addr, server_addr_len);
+    num_bytes = sendto(socketfd, "ftp", strlen("ftp")+1, FLAGS, (struct sockaddr *) &server_addr, server_addr_len);
     if (num_bytes < 0) {
         printf("Error sending message\n");
         close(socketfd);
         exit(1);
     }
-
-    printf("sent. waiting to receive\n");
 
     num_bytes = recvfrom(socketfd, buf, BUF_SIZE-1, FLAGS, (struct sockaddr *) &server_addr, &server_addr_len);
     if (num_bytes < 0) {
