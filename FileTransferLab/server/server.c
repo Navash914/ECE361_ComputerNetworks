@@ -20,40 +20,34 @@ int main(int argc, char **argv) {
         exit(0);
     }
 
-    int socketfd;
-    struct addrinfo hints, *servinfo;
-    
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_flags = AI_PASSIVE;
+    int socketfd, port, num_bytes;
+    char buf[BUF_SIZE];
+    struct sockaddr_in server_addr, client_addr;
+    socklen_t server_addr_len, client_addr_len;
+    server_addr_len = sizeof server_addr;
+    client_addr_len = sizeof client_addr;
 
-    if (getaddrinfo(LOOPBACK_ADDR, argv[1], &hints, &servinfo) < 0) {
-        printf("Error getting server address\n");
-        exit(1);
-    }
+    port = htons(atoi(argv[1]));
 
-    socketfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+    socketfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (socketfd < 0) {
         printf("Error acquiring socket\n");
         exit(1);
     }
 
-    if (bind(socketfd, servinfo->ai_addr, servinfo->ai_addrlen) < 0) {
+    memset(&server_addr, 0, server_addr_len);
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = port;
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+
+    if (bind(socketfd, (struct sockaddr *) &server_addr, server_addr_len) < 0) {
         printf("Error binding to socket\n");
         exit(1);
     }
 
-    freeaddrinfo(servinfo);
-
-    int num_bytes;
-    struct sockaddr_storage client_addr;
-    char buf[BUF_SIZE];
-    socklen_t addr_len = sizeof client_addr;
-
     printf("ready to receive\n");
 
-    num_bytes = recvfrom(socketfd, buf, BUF_SIZE-1, FLAGS, (struct sockaddr *) &client_addr, &addr_len);
+    num_bytes = recvfrom(socketfd, buf, BUF_SIZE-1, FLAGS, (struct sockaddr *) &client_addr, &client_addr_len);
     if (num_bytes < 0) {
         printf("Error receiving message\n");
         exit(1);
@@ -68,7 +62,7 @@ int main(int argc, char **argv) {
     else
         strcpy(msg, "no\n");
 
-    num_bytes = sendto(socketfd, msg, strlen(msg), FLAGS, (struct sockaddr *) &client_addr, addr_len);
+    num_bytes = sendto(socketfd, msg, strlen(msg), FLAGS, (struct sockaddr *) &client_addr, client_addr_len);
     if (num_bytes < 0) {
         printf("Error sending message\n");
         exit(1);

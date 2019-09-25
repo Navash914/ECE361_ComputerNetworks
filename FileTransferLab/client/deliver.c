@@ -19,29 +19,30 @@ int main(int argc, char **argv) {
         exit(0);
     }
 
-    int socketfd;
-    struct addrinfo hints, *servinfo;
-    
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_flags = AI_PASSIVE;
+    int socketfd, port, num_bytes;
+    char buf[BUF_SIZE], filename[BUF_SIZE];
+    struct sockaddr_in server_addr, client_addr;
+    socklen_t server_addr_len, client_addr_len;
+    server_addr_len = sizeof server_addr;
+    client_addr_len = sizeof client_addr;
 
-    if (getaddrinfo(argv[1], argv[2], &hints, &servinfo) < 0) {
-        printf("Error getting server address\n");
-        exit(1);
-    }
+    port = htons(atoi(argv[2]));
 
-    socketfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+    socketfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (socketfd < 0) {
         printf("Error acquiring socket\n");
         exit(1);
     }
 
-    int num_bytes;
-    struct sockaddr_storage server_addr;
-    char buf[BUF_SIZE], filename[BUF_SIZE];
-    socklen_t addr_len = sizeof server_addr;
+    memset(&server_addr, 0, server_addr_len);
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = port;
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+
+    if(inet_aton(argv[1], &server_addr.sin_addr) == 0){
+		printf("Error converting IP address to proper format\n");
+		exit(1);
+	}
 
     printf("Please input a message in the following format: 'ftp <file_name>\n'");
 	if (scanf("%s %s", buf, filename) == EOF) {
@@ -58,16 +59,16 @@ int main(int argc, char **argv) {
 
     printf("ready to send\n");
 
-    num_bytes = sendto(socketfd, "ftp", strlen("ftp"), FLAGS, servinfo->ai_addr, servinfo->ai_addrlen);
+    num_bytes = sendto(socketfd, "ftp", strlen("ftp"), FLAGS, (struct sockaddr *) &server_addr, server_addr_len);
     if (num_bytes < 0) {
         printf("Error sending message\n");
         close(socketfd);
         exit(1);
     }
 
-    printf("send. waiting to receive\n");
+    printf("sent. waiting to receive\n");
 
-    num_bytes = recvfrom(socketfd, buf, BUF_SIZE-1, FLAGS, (struct sockaddr *) &server_addr, &addr_len);
+    num_bytes = recvfrom(socketfd, buf, BUF_SIZE-1, FLAGS, (struct sockaddr *) &server_addr, &server_addr_len);
     if (num_bytes < 0) {
         printf("Error receiving message\n");
         close(socketfd);
@@ -76,8 +77,6 @@ int main(int argc, char **argv) {
 
     if (strcmp(buf, "yes") == 0)
         printf("A file transfer can start.\n");
-
-    freeaddrinfo(servinfo);
 
     if (close(socketfd) < 0) {
         printf("Error closing socket\n");
