@@ -39,10 +39,7 @@ int main(int argc, char **argv) {
 	server_addr.sin_port = port;
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
-    if(inet_aton(argv[1], &server_addr.sin_addr) == 0){
-		printf("Error converting IP address to proper format\n");
-		exit(1);
-	}
+    inet_aton(argv[1], &server_addr.sin_addr);
 
     printf("Please input a message in the following format: 'ftp <file_name>'\n");
 	if (scanf("%s %s", buf, filename) == EOF) {

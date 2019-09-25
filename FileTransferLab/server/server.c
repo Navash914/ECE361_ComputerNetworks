@@ -52,7 +52,6 @@ int main(int argc, char **argv) {
     }
 
     char msg[4];
-    printf("Buf: %s\n", buf);
 
     if (strcmp(buf, "ftp") == 0)
         strcpy(msg, "yes\0");
