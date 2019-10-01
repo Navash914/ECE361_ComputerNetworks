@@ -15,10 +15,12 @@
 int main(int argc, char **argv) {
 
     if (argc != 3) {
+        // Incorrect usage
         printf("Usage: deliver <server_address> <server_port_number>\n");
         exit(0);
     }
 
+    // Declare Variables
     int socketfd, port, num_bytes;
     char buf[BUF_SIZE], filename[BUF_SIZE];
     struct sockaddr_in server_addr, client_addr;
@@ -26,21 +28,25 @@ int main(int argc, char **argv) {
     server_addr_len = sizeof server_addr;
     client_addr_len = sizeof client_addr;
 
-    port = htons(atoi(argv[2]));
+    port = htons(atoi(argv[2]));    // Get port number in network format
 
+    // Get socket
     socketfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (socketfd < 0) {
         printf("Error acquiring socket\n");
         exit(1);
     }
 
+    // Create the address struct for server
     memset(&server_addr, 0, server_addr_len);
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = port;
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
+    // If server address in text form, convert to dots and numbers notation
     inet_aton(argv[1], &server_addr.sin_addr);
 
+    // Get user info for file to send
     printf("Please input a message in the following format: 'ftp <file_name>'\n");
 	if (scanf("%s %s", buf, filename) == EOF) {
         printf("Error in input format\n");
@@ -48,12 +54,14 @@ int main(int argc, char **argv) {
         exit(0);
     }
 
+    // Check if file exists
     if(access(filename, F_OK) == -1){
 		printf("File does not exist\n");
         close(socketfd);
 		exit(0);
 	}
 
+    // File exists. Send message "ftp" to server
     num_bytes = sendto(socketfd, "ftp", strlen("ftp")+1, FLAGS, (struct sockaddr *) &server_addr, server_addr_len);
     if (num_bytes < 0) {
         printf("Error sending message\n");
@@ -61,6 +69,7 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+    // Receive acknowledgement from server
     num_bytes = recvfrom(socketfd, buf, BUF_SIZE-1, FLAGS, (struct sockaddr *) &server_addr, &server_addr_len);
     if (num_bytes < 0) {
         printf("Error receiving message\n");
@@ -68,9 +77,11 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+    // Print success message
     if (strcmp(buf, "yes") == 0)
         printf("A file transfer can start.\n");
 
+    // Close the socket
     if (close(socketfd) < 0) {
         printf("Error closing socket\n");
         exit(1);
