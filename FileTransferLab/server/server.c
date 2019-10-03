@@ -1,3 +1,11 @@
+/*
+* server.c
+*
+* Written By:
+* Naveed Ashfaq - #1003859559
+* Yu Dong Feng - #1002587523
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
