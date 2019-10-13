@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
 	}
 
     // File exists. Proceed to send packets to server
-    clock_t start = clock();
+    //clock_t start = clock();
 
     FILE *file;
     file = fopen(filename, BINARY_READ_MODE);
@@ -114,46 +114,79 @@ int main(int argc, char **argv) {
     if (last_frag_size > 0)
         total_frags++;
 
-    struct packet fragments[total_frags];
-    int frag_no = 1;
-    char buffer[MAX_FILEDATA_SIZE];
+    for (int i=0; i<=total_frags; ++i) {
+        char packet[MAX_FILEDATA_SIZE + strlen(filename) + 100];
+        size_t len;
+        int expected_ack_no = i;
+        if (i == total_frags) {
+            // Send EOF packet
+            strcpy(packet, "EOF");
+            len = 4;
+            expected_ack_no = -1;
+        } else {
+            // Create packet
+            struct packet fragment;
+            fragment.total_frag = total_frags;
+            strcpy(fragment.filename, filename);
+            fragment.frag_no = i+1;
+            fragment.size = fread(fragment.filedata, sizeof(char), MAX_FILEDATA_SIZE, file);
+            len = packet_to_string(packet, fragment);
+            expected_ack_no = fragment.frag_no;
+        }
+        
+        // Send packet to server
+        num_bytes = sendto(socketfd, packet, len, FLAGS, (struct sockaddr *) &server_addr, server_addr_len);
+        if (num_bytes < 0) {
+            printf("Error sending message\n");
+            close(socketfd);
+            exit(1);
+        }
 
-    for (int i=0; i<total_frags; ++i) {
-        fragments[i].total_frag = total_frags;
-        strcpy(fragments[i].filename, filename);
-        fragments[i].frag_no = i+1;
-        fragments[i].size = fread(fragments[i].filedata, sizeof(char), MAX_FILEDATA_SIZE, file);
+        // Receive acknowledgement from server
+        num_bytes = recvfrom(socketfd, buf, BUF_SIZE-1, FLAGS, (struct sockaddr *) &server_addr, &server_addr_len);
+        if (num_bytes < 0) {
+            printf("Error receiving message\n");
+            close(socketfd);
+            exit(1);
+        }
+
+        // ACK Format => ACK <frag_no>
+        // frag_no = -1 for EOF Acknowledgement
+        char ack[4];
+        int ack_no;
+        sscanf(buf, "%s %d", ack, ack_no);
+        if (strcmp(ack, "ACK") != 0) {
+            printf("Error in ACK format\n");
+            close(socketfd);
+            exit(1);
+        }
+        if (ack_no != expected_ack_no) {
+            printf("Error in ACK number\n");
+            close(socketfd);
+            exit(1);
+        }
+        
     }
 
-
-    num_bytes = sendto(socketfd, "ftp", strlen("ftp")+1, FLAGS, (struct sockaddr *) &server_addr, server_addr_len);
-    if (num_bytes < 0) {
-        printf("Error sending message\n");
-        close(socketfd);
-        exit(1);
-    }
-
-    // Receive acknowledgement from server
-    num_bytes = recvfrom(socketfd, buf, BUF_SIZE-1, FLAGS, (struct sockaddr *) &server_addr, &server_addr_len);
-    if (num_bytes < 0) {
-        printf("Error receiving message\n");
-        close(socketfd);
-        exit(1);
-    }
-
-
-    clock_t end = clock();
+    //clock_t end = clock();
 
     // Time taken for round trip
-    double time_elapsed = (double) (end - start) / CLOCKS_PER_SEC;
-    time_elapsed *= 1000;
+    //double time_elapsed = (double) (end - start) / CLOCKS_PER_SEC;
+    //time_elapsed *= 1000;
 
     // Print success message
-    if (strcmp(buf, "yes") == 0)
-        printf("A file transfer can start.\n");
+    if (strcmp(buf, "ACK -1") == 0)
+        printf("File Transfer Complete.\n");
 
     // Time elapsed is approximately 0.037ms
-    printf("Time taken for round trip: %.3fms\n", time_elapsed);
+    //printf("Time taken for round trip: %.3fms\n", time_elapsed);
+
+    // Close the file
+    if (fclose(file) < 0) {
+        printf("Error closing file\n");
+        close(socketfd);
+        exit(1);
+    }
 
     // Close the socket
     if (close(socketfd) < 0) {
