@@ -20,6 +20,30 @@
 
 #define BUF_SIZE 1024
 #define FLAGS 0
+#define MAX_FILEDATA_SIZE 1000
+#define BINARY_READ_MODE "rb"
+
+struct packet {
+    unsigned int total_frag;
+    unsigned int frag_no;
+    unsigned int size;
+    char *filename;
+    char filedata[MAX_FILEDATA_SIZE];
+};
+
+size_t packet_to_string(char *dest, struct packet fragment) {
+    // Format => total_frag:frag_no:size:filename:data
+    sprintf(dest, "%u:%u:%u:%s:", 
+            fragment.total_frag, fragment.frag_no, 
+            fragment.size, fragment.filename);
+    size_t len = strlen(dest) + fragment.size;
+    char *s = dest;
+    s += strlen(dest);
+    for (int i=0; i<fragment.size; ++i) {
+        *s++ = fragment.filedata[i];
+    }
+    return len;
+}
 
 int main(int argc, char **argv) {
 
@@ -70,8 +94,38 @@ int main(int argc, char **argv) {
 		exit(0);
 	}
 
-    // File exists. Send message "ftp" to server
+    // File exists. Proceed to send packets to server
     clock_t start = clock();
+
+    FILE *file;
+    file = fopen(filename, BINARY_READ_MODE);
+    if (!file) {
+        printf("Error opening file\n");
+        close(socketfd);
+        exit(1);
+    }
+
+    fseek(file, 0, SEEK_END);
+    int filesize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    unsigned int total_frags = filesize / MAX_FILEDATA_SIZE;
+    unsigned int last_frag_size = filesize % MAX_FILEDATA_SIZE;
+    if (last_frag_size > 0)
+        total_frags++;
+
+    struct packet fragments[total_frags];
+    int frag_no = 1;
+    char buffer[MAX_FILEDATA_SIZE];
+
+    for (int i=0; i<total_frags; ++i) {
+        fragments[i].total_frag = total_frags;
+        strcpy(fragments[i].filename, filename);
+        fragments[i].frag_no = i+1;
+        fragments[i].size = fread(fragments[i].filedata, sizeof(char), MAX_FILEDATA_SIZE, file);
+    }
+
+
     num_bytes = sendto(socketfd, "ftp", strlen("ftp")+1, FLAGS, (struct sockaddr *) &server_addr, server_addr_len);
     if (num_bytes < 0) {
         printf("Error sending message\n");
@@ -86,6 +140,8 @@ int main(int argc, char **argv) {
         close(socketfd);
         exit(1);
     }
+
+
     clock_t end = clock();
 
     // Time taken for round trip
@@ -98,6 +154,7 @@ int main(int argc, char **argv) {
 
     // Time elapsed is approximately 0.037ms
     printf("Time taken for round trip: %.3fms\n", time_elapsed);
+
     // Close the socket
     if (close(socketfd) < 0) {
         printf("Error closing socket\n");
