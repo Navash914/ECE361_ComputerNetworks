@@ -1,0 +1,6 @@
+a1.tar.gz
+~/ece361/a1.tar.gz
+client/.vscode/
+server/.vscode/
+client/test*
+server/test*

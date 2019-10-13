@@ -20,19 +20,24 @@
 
 #define BUF_SIZE 1024
 #define FLAGS 0
+
+#define MAX_FILENAME_SIZE 100
 #define MAX_FILEDATA_SIZE 1000
 #define BINARY_READ_MODE "rb"
 
+// Struct that holds information about a fragment
 struct packet {
     unsigned int total_frag;
     unsigned int frag_no;
     unsigned int size;
-    char *filename;
+    char filename[MAX_FILENAME_SIZE];
     char filedata[MAX_FILEDATA_SIZE];
 };
 
+// Converts a fragment struct into a string
+// Format => total_frag:frag_no:size:filename:data
+// Returns length of string
 size_t packet_to_string(char *dest, struct packet fragment) {
-    // Format => total_frag:frag_no:size:filename:data
     sprintf(dest, "%u:%u:%u:%s:", 
             fragment.total_frag, fragment.frag_no, 
             fragment.size, fragment.filename);
@@ -97,6 +102,7 @@ int main(int argc, char **argv) {
     // File exists. Proceed to send packets to server
     //clock_t start = clock();
 
+    // Open file
     FILE *file;
     file = fopen(filename, BINARY_READ_MODE);
     if (!file) {
@@ -105,19 +111,22 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+    // Get size of file
     fseek(file, 0, SEEK_END);
     int filesize = ftell(file);
     fseek(file, 0, SEEK_SET);
 
+    // Get total no. of fragments from filesize
     unsigned int total_frags = filesize / MAX_FILEDATA_SIZE;
-    unsigned int last_frag_size = filesize % MAX_FILEDATA_SIZE;
-    if (last_frag_size > 0)
+    if (filesize % MAX_FILEDATA_SIZE > 0)
         total_frags++;
 
+    // Send all fragments to server
     for (int i=0; i<=total_frags; ++i) {
+        // Buffer for string representation of packet
         char packet[MAX_FILEDATA_SIZE + strlen(filename) + 100];
-        size_t len;
-        int expected_ack_no = i;
+        size_t len; // Length of string representation of packet
+        int expected_ack_no;    // Should receive this acknowledgement code from server
         if (i == total_frags) {
             // Send EOF packet
             strcpy(packet, "EOF");
@@ -154,7 +163,7 @@ int main(int argc, char **argv) {
         // frag_no = -1 for EOF Acknowledgement
         char ack[4];
         int ack_no;
-        sscanf(buf, "%s %d", ack, ack_no);
+        sscanf(buf, "%s %d", ack, &ack_no);
         if (strcmp(ack, "ACK") != 0) {
             printf("Error in ACK format\n");
             close(socketfd);

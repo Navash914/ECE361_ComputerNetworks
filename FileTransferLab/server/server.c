@@ -16,10 +16,50 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <math.h>
 
 #define LOOPBACK_ADDR "127.0.0.1"
-#define BUF_SIZE 1024
+#define BUF_SIZE 2048
 #define FLAGS 0
+
+#define MAX_FILENAME_SIZE 100
+#define MAX_FILEDATA_SIZE 1000
+#define BINARY_WRITE_MODE "wb"
+
+// Struct that holds information about a fragment
+struct packet {
+    unsigned int total_frag;
+    unsigned int frag_no;
+    unsigned int size;
+    char filename[MAX_FILENAME_SIZE];
+    char filedata[MAX_FILEDATA_SIZE];
+};
+
+// Builds a struct packet from its string representation
+// Format => total_frag:frag_no:size:filename:data
+// Returns the struct packet
+struct packet string_to_packet(char *src) {
+    struct packet fragment;
+    sscanf(src, "%u:%u:%u:%[^:]", 
+            &fragment.total_frag, &fragment.frag_no, 
+            &fragment.size, fragment.filename);
+    
+    // Position in src that filedata starts from
+    size_t pos = floor(log10(fragment.total_frag))  // Length of the digits in total_frag
+                + floor(log10(fragment.frag_no))    // Length of the digits in frag_no
+                + floor(log10(fragment.size))       // Length of the digits in size
+                + strlen(fragment.filename)         // Length of filename
+                + 7;    // +3 from the 3 integer values as floor(log(x)) gives 1 less than the actual no. of digits in x
+                        // +4 from the 4 colons in the format of the string
+
+    char *s = src;
+    s += pos;
+    for (int i=0; i<fragment.size; ++i) {
+        fragment.filedata[i] = *s++;
+    }
+
+    return fragment;
+}
 
 int main(int argc, char **argv) {
 
@@ -58,25 +98,60 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    // Ready to receive message from client
-    num_bytes = recvfrom(socketfd, buf, BUF_SIZE-1, FLAGS, (struct sockaddr *) &client_addr, &client_addr_len);
-    if (num_bytes < 0) {
-        printf("Error receiving message\n");
-        exit(1);
+    FILE *file = NULL;
+    bool eof = false;   // Flag if eof is received
+
+    while (!eof) {
+        // Ready to receive message from client
+        num_bytes = recvfrom(socketfd, buf, BUF_SIZE-1, FLAGS, (struct sockaddr *) &client_addr, &client_addr_len);
+        if (num_bytes < 0) {
+            printf("Error receiving message\n");
+            exit(1);
+        }
+
+        // Message received. Parse message.
+        char ack[10];   // Buffer for acknowledgement
+
+        if (strcmp(buf, "EOF") == 0) {
+            // EOF received
+            strcpy(ack, "ACK -1");
+            eof = true;
+        } else {
+            // Build packet struct
+            struct packet fragment = string_to_packet(buf);
+            if (!file) {
+                // Create file (overwrite if it exists)
+                file = fopen(fragment.filename, BINARY_WRITE_MODE);
+                if (!file) {
+                    printf("Error opening file\n");
+                    close(socketfd);
+                    exit(1);
+                }
+            }
+            
+            // Append filedata to file
+            if (fwrite(fragment.filedata, sizeof(char), fragment.size, file) < 0) {
+                printf("Error writing to file\n");
+                close(socketfd);
+                exit(1);
+            }
+
+            // Create acknowledgement
+            sprintf(ack, "ACK %d", fragment.frag_no);
+        }
+
+        // Send acknowledgement to client
+        num_bytes = sendto(socketfd, ack, strlen(ack)+1, FLAGS, (struct sockaddr *) &client_addr, client_addr_len);
+        if (num_bytes < 0) {
+            printf("Error sending message\n");
+            exit(1);
+        }
     }
 
-    // Message received. Parse message.
-    char msg[4];
-
-    if (strcmp(buf, "ftp") == 0)
-        strcpy(msg, "yes\0");
-    else
-        strcpy(msg, "no\n");
-
-    // Send acknowledgement to client
-    num_bytes = sendto(socketfd, msg, strlen(msg), FLAGS, (struct sockaddr *) &client_addr, client_addr_len);
-    if (num_bytes < 0) {
-        printf("Error sending message\n");
+    // Close the file
+    if (fclose(file) < 0) {
+        printf("Error closing file\n");
+        close(socketfd);
         exit(1);
     }
 
