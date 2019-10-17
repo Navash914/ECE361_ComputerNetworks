@@ -111,8 +111,11 @@ int main(int argc, char **argv) {
 
         // Message received. Parse message.
         char ack[10];   // Buffer for acknowledgement
-
-        if (strcmp(buf, "EOF") == 0) {
+	    
+	if (strcmp(buf, "ftp") == 0) {
+	    // Request for ftp
+	    strcpy(ack, "yes");
+	} else if (strcmp(buf, "EOF") == 0) {
             // EOF received
             strcpy(ack, "ACK -1");
             eof = true;
