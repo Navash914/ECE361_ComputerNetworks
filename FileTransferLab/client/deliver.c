@@ -100,7 +100,33 @@ int main(int argc, char **argv) {
 	}
 
     // File exists. Proceed to send packets to server
-    //clock_t start = clock();
+    clock_t start = clock();
+    num_bytes = sendto(socketfd, "ftp", strlen("ftp")+1, FLAGS, (struct sockaddr *) &server_addr, server_addr_len);
+    if (num_bytes < 0) {
+        printf("Error sending message\n");
+        close(socketfd);
+        exit(1);
+    }
+	
+    // Receive acknowledgement from server
+    num_bytes = recvfrom(socketfd, buf, BUF_SIZE-1, FLAGS, (struct sockaddr *) &server_addr, &server_addr_len);
+    if (num_bytes < 0) {
+        printf("Error receiving message\n");
+        close(socketfd);
+        exit(1);
+    }
+	
+    clock_t end = clock();
+
+    // Time taken for round trip
+    double time_elapsed = (double) (end - start) / CLOCKS_PER_SEC;
+    time_elapsed *= 1000;
+	
+    printf("Time taken for round trip: %.3fms\n", time_elapsed);
+	
+    // Print message that ftp can start
+    if (strcmp(buf, "yes") == 0)
+        printf("A file transfer can start.\n");
 
     // Open file
     FILE *file;
@@ -177,18 +203,9 @@ int main(int argc, char **argv) {
         
     }
 
-    //clock_t end = clock();
-
-    // Time taken for round trip
-    //double time_elapsed = (double) (end - start) / CLOCKS_PER_SEC;
-    //time_elapsed *= 1000;
-
     // Print success message
     if (strcmp(buf, "ACK -1") == 0)
         printf("File Transfer Complete.\n");
-
-    // Time elapsed is approximately 0.037ms
-    //printf("Time taken for round trip: %.3fms\n", time_elapsed);
 
     // Close the file
     if (fclose(file) < 0) {
