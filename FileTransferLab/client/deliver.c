@@ -17,6 +17,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <time.h>
+#include <errno.h>
 
 #define BUF_SIZE 1024
 #define FLAGS 0
@@ -24,6 +25,7 @@
 #define MAX_FILENAME_SIZE 100
 #define MAX_FILEDATA_SIZE 1000
 #define BINARY_READ_MODE "rb"
+#define TIMEOUT_MSEC 10
 
 // Struct that holds information about a fragment
 struct packet {
@@ -123,6 +125,16 @@ int main(int argc, char **argv) {
     time_elapsed *= 1000;
 	
     printf("Time taken for round trip: %.3fms\n", time_elapsed);
+
+    // Set timeout option for socket
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = TIMEOUT_MSEC;
+    if (setsockopt(socketfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+        printf("Failed to config receive timeout\n");
+        close(socketfd);
+        exit(1);
+    }
 	
     // Print message that ftp can start
     if (strcmp(buf, "yes") == 0)
@@ -180,6 +192,13 @@ int main(int argc, char **argv) {
         // Receive acknowledgement from server
         num_bytes = recvfrom(socketfd, buf, BUF_SIZE-1, FLAGS, (struct sockaddr *) &server_addr, &server_addr_len);
         if (num_bytes < 0) {
+            if (errno == EAGAIN) {
+                // Timeout occurred
+                printf("Timeout for ACK. Resending fragment #%d\n", i+1);
+                // Resend packet
+                i--;
+                continue;
+            }
             printf("Error receiving message\n");
             close(socketfd);
             exit(1);
