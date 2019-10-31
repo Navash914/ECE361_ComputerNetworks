@@ -100,6 +100,7 @@ int main(int argc, char **argv) {
 
     FILE *file = NULL;
     bool eof = false;   // Flag if eof is received
+    int expected_frag_no;   // The next fragment number to accept
 
     while (!eof) {
         // Ready to receive message from client
@@ -112,16 +113,21 @@ int main(int argc, char **argv) {
         // Message received. Parse message.
         char ack[10];   // Buffer for acknowledgement
 	    
-	if (strcmp(buf, "ftp") == 0) {
-	    // Request for ftp
-	    strcpy(ack, "yes");
-	} else if (strcmp(buf, "EOF") == 0) {
+        if (strcmp(buf, "ftp") == 0) {
+            // Request for ftp
+            strcpy(ack, "yes");
+            expected_frag_no = 1;
+        } else if (strcmp(buf, "EOF") == 0) {
             // EOF received
             strcpy(ack, "ACK -1");
             eof = true;
         } else {
             // Build packet struct
             struct packet fragment = string_to_packet(buf);
+
+            if (fragment.frag_no != expected_frag_no)
+                continue;
+
             if (!file) {
                 // Create file (overwrite if it exists)
                 file = fopen(fragment.filename, BINARY_WRITE_MODE);
@@ -141,6 +147,9 @@ int main(int argc, char **argv) {
 
             // Create acknowledgement
             sprintf(ack, "ACK %d", fragment.frag_no);
+
+            // Await next fragment
+            expected_frag_no++;
         }
 
         // Send acknowledgement to client
