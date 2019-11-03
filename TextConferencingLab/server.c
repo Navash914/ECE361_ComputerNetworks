@@ -52,27 +52,29 @@ void client_subroutine(User *user) {
         msg_recv = str_to_msg(buf);
         switch (msg_recv.type) {
             case LOGIN:
-                msg_send = client_login(user, msg_recv);
+                msg_send = server_login(user, msg_recv);
                 break;
             case EXIT:
                 exiting = true;
                 break;
             case QUERY:
-                msg_send = client_query(user, msg_recv);
+                msg_send = server_query(user, msg_recv);
                 break;
             case NEW_SESS:
-                msg_send = client_create_session(user, msg_recv);
+                msg_send = server_create_session(user, msg_recv);
                 break;
             case JOIN_SESS:
-                msg_send = client_join_session(user, msg_recv);
+                msg_send = server_join_session(user, msg_recv);
                 break;
             case MESSAGE:
-                msg_send = client_message(user, msg_recv);
+                msg_send = server_message(user, msg_recv);
                 break;
             case LEAVE_SESS:
-                msg_send = client_leave_session(user, msg_recv);
+                msg_send = server_leave_session(user, msg_recv);
                 break;
-            
+            default:
+                printf("Invalid message type\n");
+                break;
         }
 
         if (exiting)

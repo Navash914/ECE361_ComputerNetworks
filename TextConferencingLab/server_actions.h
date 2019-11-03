@@ -1,15 +1,15 @@
-#ifndef TCL_SERVERSERVICES_H
-#define TCL_SERVERSERVICES_H
+#ifndef TCL_SERVERACTIONS_H
+#define TCL_SERVERACTIONS_H
 
 #include "message.h"
 #include "user.h"
 #include "database.h"
 
-Message client_login(User *user, Message msg);
-Message client_query(User *user, Message msg);
-Message client_create_session(User *user, Message msg);
-Message client_join_session(User *user, Message msg);
-Message client_message(User *user, Message msg);
-Message client_leave_session(User *user, Message msg);
+Message server_login(User *user, Message msg);
+Message server_query(User *user, Message msg);
+Message server_create_session(User *user, Message msg);
+Message server_join_session(User *user, Message msg);
+Message server_message(User *user, Message msg);
+Message server_leave_session(User *user, Message msg);
 
 #endif
