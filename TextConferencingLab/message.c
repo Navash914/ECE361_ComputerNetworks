@@ -13,6 +13,7 @@ size_t msg_to_str(char *dest, Message msg) {
     for (int i=0; i<msg.size; ++i) {
         *s++ = msg.data[i];
     }
+    *s = '\0';
     return len;
 }
 
@@ -37,6 +38,8 @@ Message str_to_msg(char *src) {
     for (int i=0; i<msg.size; ++i) {
         msg.data[i] = *s++;
     }
+
+    msg.data[msg.size] = '\0';
 
     return msg;
 }
