@@ -123,6 +123,10 @@ int main(int argc, char **argv) {
                 buf[num_bytes] = '\0';
                 msg = str_to_msg(buf);
                 client_response(msg);
+                if (msg.type == LO_NAK) {
+                    close(socketfd);
+                    socketfd = -1;
+                }
             }
         }
     }
