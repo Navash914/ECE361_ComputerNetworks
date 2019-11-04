@@ -33,7 +33,7 @@ bool is_logged_in(User *user) {
 }
 
 bool is_in_session(User *user) {
-    return user->session_id > 0;
+    return user->session != NULL;
 }
 
 bool is_valid(User *user, char *pwd) {

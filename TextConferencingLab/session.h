@@ -8,6 +8,8 @@
 #include "user.h"
 #include "database.h"
 
+typedef struct userlist UserList;
+
 typedef struct session {
     char name[MAX_NAME];
     UserList *members;

@@ -1,6 +1,7 @@
 #ifndef TCL_USER_H
 #define TCL_USER_H
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>

@@ -21,6 +21,7 @@
 
 #include "defines.h"
 #include "message.h"
+#include "client_actions.h"
 
 void print_intro() {
     printf("=== Welcome to the Multi-Party Text Conferencing App! ===\n");
@@ -39,17 +40,21 @@ int main(int argc, char **argv) {
 
     int socketfd = -1, num_bytes;
     bool valid;
-    char buf[BUF_SIZE], command[BUF_SIZE], uname[MAX_NAME];
+    char buf[BUF_SIZE], *line_buf, command[BUF_SIZE], uname[MAX_NAME];
     size_t buf_size;
     Message msg;
+
+    line_buf = (char *) malloc(BUF_SIZE * sizeof(char) + 1);
 
     print_intro();
 
     // Main client loop
     while (true) {
-        size_t line_size = getline(&buf, &buf_size, stdin);
+        size_t line_size = getline(&line_buf, &buf_size, stdin);
         if (line_size <= 0)
             continue;
+        line_buf[line_size] = '\0';
+        strcpy(buf, line_buf);
         sscanf(buf, "%s", command);
         int command_type = parse_client_command(command);
 
@@ -60,10 +65,10 @@ int main(int argc, char **argv) {
         
         switch (msg.type) {
             case LOGIN:
-                if (socketfd > 0)
+                if (socketfd > 0) {
                     printf("You are already logged in as %s\n", uname);
                     valid = false;
-                else {
+                } else {
                     socketfd = client_login(buf, &msg);
                     valid = socketfd > 0;
                 }
@@ -77,7 +82,7 @@ int main(int argc, char **argv) {
             case NEW_SESS:
                 valid = client_create_session(buf, &msg);
                 break;
-            case JOIN_SESS:
+            case JOIN:
                 valid = client_join_session(buf, &msg);
                 break;
             case MESSAGE:

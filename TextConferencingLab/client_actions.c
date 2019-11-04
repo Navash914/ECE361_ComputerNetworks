@@ -60,7 +60,7 @@ int client_login(char *input, Message *msg) {
 	server_addr.sin_port = port_number;
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
-    inet_pton(argv[1], &server_addr.sin_addr);
+    inet_aton(server_ip, &server_addr.sin_addr);
 
     if (connect(socketfd, (struct sockaddr *) &server_addr, server_addr_len)) {
         printf("Error connecting to server");

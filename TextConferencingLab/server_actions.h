@@ -1,6 +1,9 @@
 #ifndef TCL_SERVERACTIONS_H
 #define TCL_SERVERACTIONS_H
 
+#include <sys/types.h>
+#include <sys/socket.h>
+
 #include "message.h"
 #include "user.h"
 #include "database.h"

@@ -23,7 +23,7 @@ Session *create_new_session(char *name) {
 }
 
 void free_session(Session *session) {
-    delete_user_list(session->members);
+    clear_user_list(session->members);
     free(session->members);
     free(session);
 }

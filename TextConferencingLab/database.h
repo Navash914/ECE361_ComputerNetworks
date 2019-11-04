@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "user.h"
 #include "session.h"
@@ -21,8 +22,8 @@ typedef struct userlist {
 // Defines a list of sessions
 typedef struct sessionlist {
     unsigned int size;
-    User *head;
-    User *tail;
+    Session *head;
+    Session *tail;
 } SessionList;
 
 extern UserList *users_db;

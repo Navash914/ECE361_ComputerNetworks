@@ -20,6 +20,10 @@
 #include <pthread.h>
 
 #include "message.h"
+#include "database.h"
+#include "user.h"
+#include "session.h"
+#include "server_actions.h"
 
 #define LOOPBACK_ADDR "127.0.0.1"
 #define BACKLOG 10
@@ -63,7 +67,7 @@ void client_subroutine(User *user) {
             case NEW_SESS:
                 msg_send = server_create_session(user, msg_recv);
                 break;
-            case JOIN_SESS:
+            case JOIN:
                 msg_send = server_join_session(user, msg_recv);
                 break;
             case MESSAGE:
@@ -96,7 +100,7 @@ void client_subroutine(User *user) {
 
         // Remove user from connected users list
         printf("Logging out %s\n", buf);
-        void delete_from_list(connected_users, user);
+        delete_user(connected_users, user);
 
         printf("Successfully logged out %s\n", buf);
     } else {
@@ -164,11 +168,11 @@ int main(int argc, char **argv) {
         }
 
         char name[BUF_SIZE];
-        inet_ntop(client_addr.ss_family, (struct sockaddr *) &client_addr, name, sizeof(name));
+        inet_ntop(client_addr.sin_family, (struct sockaddr *) &client_addr, name, sizeof(name));
         printf("Received connection from %s\n", name);
 
         User *user = create_new_user(NULL, NULL);
-        append_to_list(connected_users, user);
+        add_user(connected_users, user);
 
         pthread_create(&user->thread, NULL, (void * (*)(void *)) client_subroutine, user);
     }

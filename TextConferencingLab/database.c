@@ -35,8 +35,8 @@ void init_database() {
 	}
 
     FILE *userlist_file;
-    file = fopen(USER_LIST_FILE, BINARY_READ_MODE);
-    if (!file) {
+    userlist_file = fopen(USER_LIST_FILE, BINARY_READ_MODE);
+    if (!userlist_file) {
         printf("Error opening file\n");
         exit(1);
     }
@@ -45,7 +45,7 @@ void init_database() {
 
     while (fscanf(userlist_file, "%s %s\n", uname, pwd) != EOF) {
         User *user = create_new_user(uname, pwd);
-        append_to_list(user);
+        add_user(users_db, user);
     }
 }
 
@@ -108,7 +108,7 @@ void delete_user(UserList *list, User *target) {
 User *find_user(UserList *list, char *uname) {
     if (list == NULL) {
         printf("No list to search in\n");
-        return;
+        return NULL;
     }
     User *current = list->head;
     while (current != NULL) {
@@ -167,7 +167,7 @@ void delete_session(SessionList *list, Session *target) {
         list->head->prev = NULL;
 		target->next = NULL;
 	} else {
-        User *prev = target->prev;
+        Session *prev = target->prev;
 		prev->next = target->next;
 		target->next = NULL;
         target->prev = NULL;
@@ -186,9 +186,9 @@ void delete_session(SessionList *list, Session *target) {
 Session *find_session(SessionList *list, char *name) {
     if (list == NULL) {
         printf("No list to search in\n");
-        return;
+        return NULL;
     }
-    User *current = list->head;
+    Session *current = list->head;
     while (current != NULL) {
         if (!strcmp(current->name, name))
             return current;
@@ -203,7 +203,7 @@ void clear_session_list(SessionList *list) {
         return;
     }
 	while (list->head != NULL) {
-		User *next = list->head->next;
+		Session *next = list->head->next;
         next->prev = NULL;
         list->head->next = NULL;
 		free_session(list->head);

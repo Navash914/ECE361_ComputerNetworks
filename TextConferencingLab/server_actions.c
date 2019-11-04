@@ -1,7 +1,7 @@
 #include "server_actions.h"
 
 Message server_login(User *user, Message msg) {
-    User *db_entry = find_in_list(users_db, msg.source);
+    User *db_entry = find_user(users_db, msg.source);
     if (!db_entry) {
         // User does not exist
         msg.type = LO_NAK;
@@ -81,7 +81,7 @@ Message server_join_session(User *user, Message msg) {
     Session *session = find_session(sessions, msg.data);
     if (session == NULL) {
         // Session does not exist
-        msg.type = JS_NAK;
+        msg.type = JN_NAK;
         sprintf(buf, "%s Session does not exist.\0", msg.data);
         strcpy(msg.data, buf);
         msg.size = strlen(msg.data);
@@ -90,7 +90,7 @@ Message server_join_session(User *user, Message msg) {
 
     // TODO: Join session and return session name in msg
     if (user->session == session) {
-        msg.type = JS_NAK;
+        msg.type = JN_NAK;
         sprintf(buf, "%s You are already a member of this session.\0", msg.data);
         strcpy(msg.data, buf);
         msg.size = strlen(msg.data);
@@ -98,7 +98,7 @@ Message server_join_session(User *user, Message msg) {
     }
 
     if (user->session != NULL) {
-        msg.type = JS_NAK;
+        msg.type = JN_NAK;
         sprintf(buf, "%s You are already a member of '%s', please leave that session before joining a new one.\0", msg.data, user->session->name);
         strcpy(msg.data, buf);
         msg.size = strlen(msg.data);
@@ -106,7 +106,7 @@ Message server_join_session(User *user, Message msg) {
     }
 
     add_member_to_session(session, user);
-    msg.type = JS_ACK;
+    msg.type = JN_ACK;
     return msg;
 }
 
