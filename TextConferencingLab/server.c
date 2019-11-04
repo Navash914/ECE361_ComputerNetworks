@@ -85,11 +85,13 @@ void client_subroutine(User *user) {
         if (num_bytes < 0) {
             printf("Error sending message to client\n");
         }
+        if (!user->logged_in)
+            break;
     }
 
     // Client exit
-    strcpy(buf, user->username);
     if (user->logged_in) {
+        strcpy(buf, user->username);
         // Exit user out of session
 
         // Remove user from connected users list

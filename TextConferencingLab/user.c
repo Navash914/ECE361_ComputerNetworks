@@ -18,10 +18,14 @@ User *create_new_user(char *uname, char *pwd) {
 void init_user(User *user) {
     user->sockfd = -1;
     user->logged_in = false;
-    user->session_id = -1;
+    user->session = NULL;
 
     user->next = NULL;
     user->prev = NULL;
+}
+
+void free_user(User *user) {
+    free(user);
 }
 
 bool is_logged_in(User *user) {

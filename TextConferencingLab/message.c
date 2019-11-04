@@ -43,3 +43,12 @@ Message str_to_msg(char *src) {
 
     return msg;
 }
+
+Message copy_message(Message src) {
+    Message msg;
+    msg.type = src.type;
+    msg.size = src.size;
+    strcpy(msg.source, src.source);
+    strcpy(msg.data, src.data);
+    return msg;
+}

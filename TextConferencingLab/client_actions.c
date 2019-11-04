@@ -143,42 +143,48 @@ void client_response(Message msg) {
     char name_buf[MAX_NAME], data_buf[MAX_DATA];
     switch(msg.type) {
         case LO_ACK:
-            printf("%s successfully logged in.\n", msg->source);
+            printf("%s successfully logged in.\n", msg.source);
             break;
         case LO_NAK:
-            printf("Could not log in %s.\nReason: %s\n", msg->source, msg->data);
+            printf("Could not log in %s.\nReason: %s\n", msg.source, msg.data);
             break;
         case QU_ACK:
             printf("TODO: Print list of users and sessions\n");
             break;
         case QU_NAK:
-            printf("Could not successfully obtain query.\nReason: %s\n", msg->data);
+            printf("Could not successfully obtain query.\nReason: %s\n", msg.data);
             break;
         case NS_ACK:
-            printf("Successfully created and joined session '%s'\n", msg->data);
+            printf("Successfully created and joined session '%s'\n", msg.data);
             break;
         case NS_NAK:
-            sscanf(msg->data, "%s %[^\0]", name_buf, data_buf);
+            sscanf(msg.data, "%s %[^\0]", name_buf, data_buf);
             printf("Could not create session '%s'.\nReason: %s\n", name_buf, data_buf);
             break;
         case JN_ACK:
-            printf("Successfully joined session '%s'\n", msg->data);
+            printf("Successfully joined session '%s'\n", msg.data);
             break;
         case JN_NAK:
-            sscanf(msg->data, "%s %[^\0]", name_buf, data_buf);
+            sscanf(msg.data, "%s %[^\0]", name_buf, data_buf);
             printf("Could not join session '%s'.\nReason: %s\n", name_buf, data_buf);
+            break;
+        case NOTIFICATION:
+            printf("Server notification: %s\n", msg.data);
+            break;
+        case MESSAGE:
+            printf("%s: %s\n", msg.source, msg.data);
             break;
         case MS_ACK:
             break;
         case MS_NAK:
-            printf("Could not send message.\nReason: %s\n", msg->data);
+            printf("Could not send message.\nReason: %s\n",msg.data);
             break;
         case LV_ACK:
-            printf("Successfully left session '%s'\n", msg->data);
+            printf("Successfully left session '%s'\n", msg.data);
             break;
         case LV_NAK:
             //sscanf(msg->data, "%s %[^\0]", name_buf, data_buf);
-            printf("Could not leave session.\nReason: %s\n", msg->data);
+            printf("Could not leave session.\nReason: %s\n", msg.data);
             break;    
     }
 }

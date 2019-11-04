@@ -32,6 +32,8 @@
 #define LV_ACK 17
 #define LV_NAK 18
 
+#define NOTIFICATION 19
+
 typedef struct message {
     unsigned int type;
     unsigned int size;
@@ -41,5 +43,7 @@ typedef struct message {
 
 size_t msg_to_str(char *dest, Message msg);
 Message str_to_msg(char *src);
+
+Message copy_message(Message src);
 
 #endif

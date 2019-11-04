@@ -5,7 +5,10 @@
 #include <stdbool.h>
 #include <string.h>
 #include <pthread.h>
+
 #include "defines.h"
+
+typedef struct session Session; // Forward declaration
 
 // Holds information about a user
 typedef struct user {
@@ -15,7 +18,7 @@ typedef struct user {
     int sockfd;
 
     bool logged_in;
-    int session_id;
+    Session *session;
 
     pthread_t thread;
 
@@ -26,6 +29,8 @@ typedef struct user {
 
 User *create_new_user(char *uname, char *pwd);
 void init_user(User *user);
+void free_user(User *user);
+
 bool is_logged_in(User *user);
 bool is_in_session(User *user);
 bool is_valid(User *user, char *pwd);
