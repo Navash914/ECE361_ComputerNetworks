@@ -23,11 +23,43 @@
 #include "message.h"
 #include "client_actions.h"
 
+typedef struct client_status {
+    int socketfd;
+    char uname[MAX_NAME];
+
+    bool connected;
+    bool exiting;
+} ClientStatus;
+
+ClientStatus status;
+
 void print_intro() {
     printf("=== Welcome to the Multi-Party Text Conferencing App! ===\n");
     printf("To get started, login to a server with your username and password.\n");
     printf("Available commands:\n  /login <username> <password> <server-ip> <server-port>\n");
     printf("\nYou can use /quit to exit the program anytime\n");
+}
+
+void receive_msg(ClientStatus *status) {
+    char buf[BUF_SIZE];
+    while (!status->exiting) {
+        int num_bytes = recv(status->socketfd, buf, BUF_SIZE-1, FLAGS);
+        if (num_bytes < 0) {
+            printf("Error receiving msg from server\n");
+            exit(1);
+        }
+        buf[num_bytes] = '\0';
+        Message msg = str_to_msg(buf);
+        client_response(msg);
+        if (msg.type == LO_ACK) {
+            status->connected = true;
+        } else if (msg.type == LO_NAK) {
+            status->connected = false;
+            close(status->socketfd);
+            status->socketfd = -1;
+        }
+    }
+    pthread_exit((void *) 0);
 }
 
 int main(int argc, char **argv) {
@@ -38,15 +70,21 @@ int main(int argc, char **argv) {
         exit(0);
     }
 
-    int socketfd = -1, num_bytes;
+    int num_bytes;
     bool valid;
-    char buf[BUF_SIZE], *line_buf, command[BUF_SIZE], uname[MAX_NAME];
+    char buf[BUF_SIZE], *line_buf, command[BUF_SIZE];
     size_t buf_size;
     Message msg;
+    status.socketfd = -1;
+    status.connected = false;
+    status.exiting = false;
 
     line_buf = (char *) malloc(BUF_SIZE * sizeof(char) + 1);
 
     print_intro();
+    // Start receive thread
+    pthread_t receive_thread;
+    pthread_create(&receive_thread, NULL, (void * (*)(void *)) receive_msg, &status);
 
     // Main client loop
     while (true) {
@@ -65,16 +103,17 @@ int main(int argc, char **argv) {
         
         switch (msg.type) {
             case LOGIN:
-                if (socketfd > 0) {
-                    printf("You are already logged in as %s\n", uname);
+                if (status.connected) {
+                    printf("You are already logged in as %s\n", status.uname);
                     valid = false;
                 } else {
-                    socketfd = client_login(buf, &msg);
-                    valid = socketfd > 0;
+                    status.socketfd = client_login(buf, &msg);
+                    valid = status.socketfd > 0;
+                    status.connected = valid;
                 }
                 break;
             case EXIT:
-                valid = client_logout(buf, &msg, socketfd);
+                valid = client_logout(buf, &msg, status.socketfd);
                 break;
             case QUERY:
                 valid = client_query(buf, &msg);
@@ -97,20 +136,20 @@ int main(int argc, char **argv) {
                 break;
         }
 
-        if (socketfd < 0) {
+        if (!status.connected) {
             valid = false;
             printf("Please /login first before using other commands\n");
         }
 
         if (valid) {
             if (msg.type == LOGIN) {
-                strcpy(uname, msg.source);
+                strcpy(status.uname, msg.source);
             } else {
-                strcpy(msg.source, uname);
+                strcpy(msg.source, status.uname);
             }
 
             msg_to_str(buf, msg);
-            num_bytes = send(socketfd, buf, BUF_SIZE-1, FLAGS);
+            num_bytes = send(status.socketfd, buf, BUF_SIZE-1, FLAGS);
             if (num_bytes < 0) {
                 printf("Error sending msg to server\n");
                 exit(1);
@@ -118,27 +157,18 @@ int main(int argc, char **argv) {
 
             if (msg.type == EXIT) {
                 printf("Successfully logged out.\n");
-                socketfd = -1;
-            } else {
-                num_bytes = recv(socketfd, buf, BUF_SIZE-1, FLAGS);
-                if (num_bytes < 0) {
-                    printf("Error receiving msg from server\n");
-                    exit(1);
-                }
-                buf[num_bytes] = '\0';
-                msg = str_to_msg(buf);
-                client_response(msg);
-                if (msg.type == LO_NAK) {
-                    close(socketfd);
-                    socketfd = -1;
-                }
+                status.socketfd = -1;
             }
         }
     }
 
+    status.connected = false;
+    status.exiting = true;
+    pthread_join(receive_thread, NULL);
+
     // Clean up socket if connected
-    if (socketfd > 0) {
-        if (close(socketfd)) {
+    if (status.socketfd > 0) {
+        if (close(status.socketfd)) {
             printf("Error closing socket\n");
             exit(1);
         }
