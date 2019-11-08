@@ -43,7 +43,12 @@ void print_intro() {
 void receive_msg(ClientStatus *status) {
     char buf[BUF_SIZE];
     while (!status->exiting) {
+        while (!status->connected && !status->exiting);
+        if (status->exiting)
+            break;
         int num_bytes = recv(status->socketfd, buf, BUF_SIZE-1, FLAGS);
+        //if (!status->connected)
+        //    continue;
         if (num_bytes < 0) {
             printf("Error receiving msg from server\n");
             exit(1);
@@ -56,6 +61,14 @@ void receive_msg(ClientStatus *status) {
         } else if (msg.type == LO_NAK) {
             status->connected = false;
             close(status->socketfd);
+            status->socketfd = -1;
+        } else if (msg.type == EXIT) {
+            printf("Successfully logged out.\n");
+            status->connected = false;
+            if (close(status->socketfd)) {
+                printf("Error closing socket\n");
+                exit(1);
+            }
             status->socketfd = -1;
         }
     }
@@ -113,7 +126,7 @@ int main(int argc, char **argv) {
                 }
                 break;
             case EXIT:
-                valid = client_logout(buf, &msg, status.socketfd);
+                valid = client_logout(buf, &msg);
                 break;
             case QUERY:
                 valid = client_query(buf, &msg);
@@ -153,11 +166,6 @@ int main(int argc, char **argv) {
             if (num_bytes < 0) {
                 printf("Error sending msg to server\n");
                 exit(1);
-            }
-
-            if (msg.type == EXIT) {
-                printf("Successfully logged out.\n");
-                status.socketfd = -1;
             }
         }
     }

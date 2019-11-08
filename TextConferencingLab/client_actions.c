@@ -74,13 +74,13 @@ int client_login(char *input, Message *msg) {
 
 }
 
-bool client_logout(char *input, Message *msg, int socketfd) {
+bool client_logout(char *input, Message *msg) {
     // Input format: /logout
 
-    if (close(socketfd)) {
-        printf("Error closing socket\n");
-        exit(1);
-    }
+    //if (close(socketfd)) {
+    //    printf("Error closing socket\n");
+    //    exit(1);
+    //}
 
     msg->size = 0;
     return true;
@@ -149,7 +149,7 @@ void client_response(Message msg) {
             printf("Could not log in %s.\nReason: %s\n", msg.source, msg.data);
             break;
         case QU_ACK:
-            printf("TODO: Print list of users and sessions\n");
+            printf("%s", msg.data);
             break;
         case QU_NAK:
             printf("Could not successfully obtain query.\nReason: %s\n", msg.data);

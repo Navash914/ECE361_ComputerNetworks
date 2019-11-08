@@ -19,6 +19,9 @@ Session *create_new_session(char *name) {
     session->members->tail = NULL;
     session->members->size = 0;
 
+    session->next = NULL;
+    session->prev = NULL;
+
     return session;
 }
 
@@ -39,7 +42,8 @@ bool member_exists_in_session(Session *session, User *user) {
 bool add_member_to_session(Session *session, User *user) {
     if (user->session != NULL)
         return false;
-    add_user(session->members, user);
+    User *user_in_session = copy_user(user);
+    add_user(session->members, user_in_session);
     user->session = session;
     return true;
 }

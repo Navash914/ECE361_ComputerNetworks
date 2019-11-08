@@ -8,7 +8,7 @@
 int parse_client_command(char *command);
 
 int client_login(char *input, Message *msg);
-bool client_logout(char *input, Message *msg, int socketfd);
+bool client_logout(char *input, Message *msg);
 bool client_query(char *input, Message *msg);
 bool client_create_session(char *input, Message *msg);
 bool client_join_session(char *input, Message *msg);

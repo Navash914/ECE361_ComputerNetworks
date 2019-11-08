@@ -67,10 +67,13 @@ void add_user(UserList *list, User *node) {
 		// List is currently empty
 		list->head = node;
 		list->tail = node;
+        node->next = NULL;
+        node->prev = NULL;
 	} else {
 		list->tail->next = node;	// Append to end of list
         node->prev = list->tail;
 		list->tail = list->tail->next;	// Move tail to new end of list
+        node->next = NULL;
 	}
 	list->size++;	// Update list size
 }
@@ -144,10 +147,13 @@ void add_session(SessionList *list, Session *node) {
 		// List is currently empty
 		list->head = node;
 		list->tail = node;
+        node->next = NULL;
+        node->prev = NULL;
 	} else {
 		list->tail->next = node;	// Append to end of list
         node->prev = list->tail;
 		list->tail = list->tail->next;	// Move tail to new end of list
+        node->next = NULL;
 	}
 	list->size++;	// Update list size
 }

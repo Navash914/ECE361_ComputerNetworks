@@ -30,7 +30,7 @@ Message str_to_msg(char *src) {
     size_t pos = floor(log10(msg.type))  // Length of the digits in type
                 + floor(log10(msg.size))    // Length of the digits in size
                 + strlen(msg.source)         // Length of source
-                + 6;    // +3 from the 3 integer values as floor(log(x)) gives 1 less than the actual no. of digits in x
+                + 5;    // +2 from the 2 integer values as floor(log(x)) gives 1 less than the actual no. of digits in x
                         // +3 from the 3 spaces in the format of the string
 
     char *s = src;

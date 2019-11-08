@@ -31,6 +31,7 @@ typedef struct user {
 User *create_new_user(char *uname, char *pwd);
 void init_user(User *user);
 void free_user(User *user);
+User *copy_user(User *user);
 
 bool is_logged_in(User *user);
 bool is_in_session(User *user);

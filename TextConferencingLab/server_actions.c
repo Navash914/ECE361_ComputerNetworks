@@ -12,12 +12,15 @@ Message server_login(User *user, Message msg) {
 
     if (!is_valid(db_entry, msg.data)) {
         // Incorrect password
+        printf("Expected password: %s\nReceived password: %s\n", db_entry->password, msg.data);
         msg.type = LO_NAK;
         strcpy(msg.data, "Incorrect password\0");
         msg.size = strlen(msg.data);
         return msg;
     }
 
+    strcpy(user->username, db_entry->username);
+    strcpy(user->password, db_entry->password);
     user->logged_in = true;
     msg.type = LO_ACK;
     msg.size = 0;
@@ -40,6 +43,26 @@ Message server_query(User *user, Message msg) {
     }
 
     // TODO: Concat session info in buf
+    if (sessions->size == 0)
+        strcat(buf, "There are currently no available sessions.\n");
+    else {
+        strcat(buf, "Currently available sessions: \n");
+        Session *current = sessions->head;
+        while (current != NULL) {
+            strcat(buf, "  ");
+            strcat(buf, current->name);
+            strcat(buf, ": \n");
+            User *user = current->members->head;
+            while (user != NULL) {
+                strcat(buf, "    -> ");
+                strcat(buf, user->username);
+                strcat(buf, "\n");
+                user = user->next;
+            }
+            current = current->next;
+        }
+        strcat(buf, "\n");
+    }
 
     msg.type = QU_ACK;
     strcpy(msg.data, buf);
@@ -72,6 +95,7 @@ Message server_create_session(User *user, Message msg) {
     add_member_to_session(session, user);
     add_session(sessions, session);
     msg.type = NS_ACK;
+    send_session_creation_notification(session, msg);
     return msg;
 }
 
@@ -107,6 +131,7 @@ Message server_join_session(User *user, Message msg) {
 
     add_member_to_session(session, user);
     msg.type = JN_ACK;
+    send_session_join_notification(session, msg);
     return msg;
 }
 
@@ -129,17 +154,23 @@ Message server_message(User *user, Message msg) {
 Message server_leave_session(User *user, Message msg) {
     char buf[MAX_DATA];
 
-    if (user->session == NULL) {
+    Session *session = user->session;
+
+    if (session == NULL) {
         msg.type = LV_NAK;
         strcpy(msg.data, "You are not a member of any session.\0");
         msg.size = strlen(msg.data);
         return msg;
     }
 
-    strcpy(msg.data, user->session->name);
+    strcpy(msg.data, session->name);
     msg.size = strlen(msg.data);
-    remove_member_from_session(user->session, user);
+    remove_member_from_session(session, user);
     msg.type = LV_ACK;
+    if (session->members->size > 0)
+        send_session_leave_notification(session, msg);
+    else
+        delete_session(sessions, session);
     return msg;
 }
 
@@ -171,13 +202,18 @@ void send_session_leave_notification(Session *session, Message msg) {
 }
 
 void server_broadcast(UserList *list, Message msg) {
+    printf("Starting broadcast.\nMsg source is ");
+    printf("%s\n", msg.source);
     char buf[BUF_SIZE];
     int num_bytes;
     msg_to_str(buf, msg);
     User *user = list->head;
     while (user != NULL) {
-        if (!strcmp(user->username, msg.source))
+        if (!strcmp(user->username, msg.source)) {
+            user = user->next;
             continue;
+        }
+        printf("Broadcasting to %s\n", user->username);
         num_bytes = send(user->sockfd, buf, BUF_SIZE-1, FLAGS);
         if (num_bytes < 0) {
             printf("Error sending message to %s\n", user->username);

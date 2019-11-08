@@ -28,6 +28,14 @@ void free_user(User *user) {
     free(user);
 }
 
+User *copy_user(User *user) {
+    User *new_user = (User *) malloc(sizeof(User));
+    memcpy(new_user, user, sizeof(User));
+    new_user->next = NULL;
+    new_user->prev = NULL;
+    return new_user;
+}
+
 bool is_logged_in(User *user) {
     return user->logged_in;
 }

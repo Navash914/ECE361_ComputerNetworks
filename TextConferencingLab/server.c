@@ -43,7 +43,7 @@ void client_subroutine(User *user) {
         }
         if (num_bytes == 0) {
             if (user->logged_in)
-                printf("%s closed connection\n");
+                printf("%s closed connection\n", user->username);
             else
                 printf("Unknown user closed connection\n");
             exiting = true;
@@ -85,6 +85,7 @@ void client_subroutine(User *user) {
             break;
 
         msg_to_str(buf, msg_send);
+        printf("Sending msg '%s' to %s\n", buf, user->username);
         num_bytes = send(user->sockfd, buf, BUF_SIZE-1, FLAGS);
         if (num_bytes < 0) {
             printf("Error sending message to client\n");
@@ -95,8 +96,31 @@ void client_subroutine(User *user) {
 
     // Client exit
     if (user->logged_in) {
+        // Send reply for successful exit
+        Message msg;
+        msg.type = EXIT;
+        msg.data[0] = '\0';
+        msg.size = 0;
+        strcpy(msg.source, user->username);
+        msg_to_str(buf, msg);
+        num_bytes = send(user->sockfd, buf, BUF_SIZE-1, FLAGS);
+        if (num_bytes < 0) {
+            printf("Error sending message to client\n");
+        }
+
         strcpy(buf, user->username);
+
         // Exit user out of session
+        if (user->session != NULL) {
+            Session *session = user->session;
+            remove_member_from_session(session, user);
+            if (session->members->size > 0) {
+                Message msg;
+                strcpy(msg.source, user->username);
+                send_session_leave_notification(session, msg);
+            } else
+                delete_session(sessions, session);
+        }
 
         // Remove user from connected users list
         printf("Logging out %s\n", buf);
@@ -172,12 +196,13 @@ int main(int argc, char **argv) {
         printf("Received connection from %s\n", name);
 
         User *user = create_new_user(NULL, NULL);
+        user->sockfd = new_sockfd;
         add_user(connected_users, user);
 
         pthread_create(&user->thread, NULL, (void * (*)(void *)) client_subroutine, user);
     }
 
-    printf("Preparing for server exit\n");
+    printf("Preparing for server exit...\n");
 
     // Clear global data structures
     clear_database();
