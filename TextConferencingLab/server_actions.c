@@ -156,7 +156,7 @@ Message server_message(User *user, Message msg) {
 
     // TODO: Send message to all users in session
     UserList *members = user->session->members;
-    printf("Added new message from user '%s' to session '%s'\n", user->username, session->name);
+    printf("Added new message from user '%s' to session '%s'\n", user->username, user->session->name);
     server_broadcast(members, msg);
     msg.type = MS_ACK;
     return msg;
