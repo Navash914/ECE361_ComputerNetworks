@@ -141,6 +141,7 @@ bool client_leave_session(char *input, Message *msg) {
 
 void client_response(Message msg) {
     char name_buf[MAX_NAME], data_buf[MAX_DATA];
+    void extract_name_and_info(char *src, char *name, char *data);
     switch(msg.type) {
         case LO_ACK:
             printf("%s successfully logged in.\n", msg.source);
@@ -158,18 +159,20 @@ void client_response(Message msg) {
             printf("Successfully created and joined session '%s'\n", msg.data);
             break;
         case NS_NAK:
-            sscanf(msg.data, "%s %[^\0]", name_buf, data_buf);
+            extract_name_and_info(msg.data, name_buf, data_buf);
+            //sscanf(msg.data, "%s %[^\0]", name_buf, data_buf);
             printf("Could not create session '%s'.\nReason: %s\n", name_buf, data_buf);
             break;
         case JN_ACK:
             printf("Successfully joined session '%s'\n", msg.data);
             break;
         case JN_NAK:
-            sscanf(msg.data, "%s %[^\0]", name_buf, data_buf);
+            extract_name_and_info(msg.data, name_buf, data_buf);
+            //sscanf(msg.data, "%s %[^\0]", name_buf, data_buf);
             printf("Could not join session '%s'.\nReason: %s\n", name_buf, data_buf);
             break;
         case NOTIFICATION:
-            printf("Server notification: %s\n", msg.data);
+            printf("SERVER NOTIFICATION => %s\n", msg.data);
             break;
         case MESSAGE:
             printf("%s: %s\n", msg.source, msg.data);
@@ -187,4 +190,17 @@ void client_response(Message msg) {
             printf("Could not leave session.\nReason: %s\n", msg.data);
             break;    
     }
+}
+
+void extract_name_and_info(char *src, char *name, char *data) {
+    char *s = src, *d = name;
+    while (*s != ' ')
+        *d++ = *s++;
+    *d = '\0';
+
+    d = data;
+    s++;
+    while (*s != '\0')
+        *d++ = *s++;
+    *d = '\0';
 }
