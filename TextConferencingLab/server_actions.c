@@ -12,9 +12,16 @@ Message server_login(User *user, Message msg) {
 
     if (!is_valid(db_entry, msg.data)) {
         // Incorrect password
-        printf("Expected password: %s\nReceived password: %s\n", db_entry->password, msg.data);
         msg.type = LO_NAK;
         strcpy(msg.data, "Incorrect password\0");
+        msg.size = strlen(msg.data);
+        return msg;
+    }
+
+    if (find_user(connected_users, db_entry->username) != NULL) {
+        // User already connected
+        msg.type = LO_NAK;
+        strcpy(msg.data, "User already connected\0");
         msg.size = strlen(msg.data);
         return msg;
     }
