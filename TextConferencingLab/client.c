@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
     pthread_create(&receive_thread, NULL, (void * (*)(void *)) receive_msg, &status);
 
     // Main client loop
-    while (true) {
+    while (!status.exiting) {
         size_t line_size = getline(&line_buf, &buf_size, stdin);
         if (line_size <= 0)
             continue;
@@ -109,8 +109,17 @@ int main(int argc, char **argv) {
         sscanf(buf, "%s", command);
         int command_type = parse_client_command(command);
 
-        if (command_type == -1)
-            break;  // Quit command
+        if (command_type == -1) {
+            // Quit command
+            if (status.connected) {
+                // Gracefully logout and let receive thread exit
+                command_type = EXIT;
+
+                // Set client status to exiting to exit out on next loop
+                status.exiting = true;
+            } else break;   // Client not connected. Simply exit.
+        }
+            
 
         msg.type = (unsigned int) command_type;
         
