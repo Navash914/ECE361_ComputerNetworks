@@ -113,6 +113,7 @@ void client_subroutine(User *user) {
         if (user->session != NULL) {
             Session *session = user->session;
             remove_member_from_session(session, user);
+            printf("Removed user '%s' from session '%s'\n", user->username, session->name);
             if (session->members->size > 0) {
                 Message msg;
                 strcpy(msg.source, user->username);

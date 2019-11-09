@@ -8,6 +8,25 @@
 
 #include "client_actions.h"
 
+void print_intro() {
+    printf("\n=== Welcome to the Multi-Party Text Conferencing App! ===\n\n");
+    printf("To get started, login to a server with your username and password.\n");
+    printf("\nAvailable commands:\n  /login <username> <password> <server-ip> <server-port>\n");
+    printf("\nYou can use /quit to exit the program anytime\n\n");
+}
+
+void print_commands() {
+    printf("\nAvailable commands to communicate with the server:\n");
+    printf("  /logout\n");
+    printf("  /createsession <session_name>\n");
+    printf("  /joinsession <session_name>\n");
+    printf("  /leavesession\n");
+    printf("  /list\n");
+    printf("  /help\n");
+    printf("\nWhile in a session, simply type your message to send it to other users in the session.\n");
+    printf("\nYou can use /quit to exit the program anytime\n\n");
+}
+
 int parse_client_command(char *command) {
     if (command[0] != '/')
         return MESSAGE;
@@ -23,6 +42,8 @@ int parse_client_command(char *command) {
         return NEW_SESS;
     else if (!strcmp(command, "/list"))
         return QUERY;
+    else if (!strcmp(command, "/help"))
+        return HELP;
     else if (!strcmp(command, "/quit"))
         return -1;
     else
@@ -145,12 +166,13 @@ void client_response(Message msg) {
     switch(msg.type) {
         case LO_ACK:
             printf("%s successfully logged in.\n", msg.source);
+            print_commands();
             break;
         case LO_NAK:
             printf("Could not log in %s.\nReason: %s\n", msg.source, msg.data);
             break;
         case QU_ACK:
-            printf("%s", msg.data);
+            printf("\n%s", msg.data);
             break;
         case QU_NAK:
             printf("Could not successfully obtain query.\nReason: %s\n", msg.data);
@@ -172,10 +194,10 @@ void client_response(Message msg) {
             printf("Could not join session '%s'.\nReason: %s\n", name_buf, data_buf);
             break;
         case NOTIFICATION:
-            printf("SERVER NOTIFICATION => %s\n", msg.data);
+            printf("\nSERVER NOTIFICATION => %s\n\n", msg.data);
             break;
         case MESSAGE:
-            printf("%s: %s\n", msg.source, msg.data);
+            printf("%s: %s", msg.source, msg.data);
             break;
         case MS_ACK:
             break;

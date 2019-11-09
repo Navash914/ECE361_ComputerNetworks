@@ -52,7 +52,7 @@ Message server_query(User *user, Message msg) {
 
     // TODO: Concat session info in buf
     if (sessions->size == 0)
-        strcat(buf, "There are currently no available sessions.\n");
+        strcat(buf, "There are currently no available sessions.\n\n");
     else {
         strcat(buf, "Currently available sessions: \n");
         Session *current = sessions->head;
@@ -216,8 +216,6 @@ void send_session_leave_notification(Session *session, Message msg) {
 }
 
 void server_broadcast(UserList *list, Message msg) {
-    printf("Starting broadcast.\nMsg source is ");
-    printf("%s\n", msg.source);
     char buf[BUF_SIZE];
     int num_bytes;
     msg_to_str(buf, msg);
@@ -227,7 +225,6 @@ void server_broadcast(UserList *list, Message msg) {
             user = user->next;
             continue;
         }
-        printf("Broadcasting to %s\n", user->username);
         num_bytes = send(user->sockfd, buf, BUF_SIZE-1, FLAGS);
         if (num_bytes < 0) {
             printf("Error sending message to %s\n", user->username);

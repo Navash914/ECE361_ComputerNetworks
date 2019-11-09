@@ -5,6 +5,9 @@
 #include "user.h"
 #include "database.h"
 
+void print_intro();
+void print_commands();
+
 int parse_client_command(char *command);
 
 int client_login(char *input, Message *msg);

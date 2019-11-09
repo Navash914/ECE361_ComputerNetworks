@@ -33,13 +33,6 @@ typedef struct client_status {
 
 ClientStatus status;
 
-void print_intro() {
-    printf("=== Welcome to the Multi-Party Text Conferencing App! ===\n");
-    printf("To get started, login to a server with your username and password.\n");
-    printf("Available commands:\n  /login <username> <password> <server-ip> <server-port>\n");
-    printf("\nYou can use /quit to exit the program anytime\n");
-}
-
 void receive_msg(ClientStatus *status) {
     char buf[BUF_SIZE];
     while (!status->exiting) {
@@ -118,6 +111,11 @@ int main(int argc, char **argv) {
                 // Set client status to exiting to exit out on next loop
                 status.exiting = true;
             } else break;   // Client not connected. Simply exit.
+        }
+
+        if (command_type == HELP) {
+            print_commands();
+            continue;
         }
             
 

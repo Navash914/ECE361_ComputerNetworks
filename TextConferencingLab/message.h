@@ -35,6 +35,8 @@
 
 #define NOTIFICATION 19
 
+#define HELP 20
+
 typedef struct message {
     unsigned int type;
     unsigned int size;
