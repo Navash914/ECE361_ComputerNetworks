@@ -31,7 +31,7 @@
 // Subroutine for each client
 void client_subroutine(User *user) {
     int num_bytes;
-    Message msg_send, msg_recv;
+    Message msg;
     char buf[BUF_SIZE];
     bool exiting = false;
 
@@ -53,28 +53,28 @@ void client_subroutine(User *user) {
         if (exiting)
             break;
 
-        msg_recv = str_to_msg(buf);
-        switch (msg_recv.type) {
+        msg = str_to_msg(buf);
+        switch (msg.type) {
             case LOGIN:
-                msg_send = server_login(user, msg_recv);
+                msg = server_login(user, msg);
                 break;
             case EXIT:
                 exiting = true;
                 break;
             case QUERY:
-                msg_send = server_query(user, msg_recv);
+                msg = server_query(user, msg);
                 break;
             case NEW_SESS:
-                msg_send = server_create_session(user, msg_recv);
+                msg = server_create_session(user, msg);
                 break;
             case JOIN:
-                msg_send = server_join_session(user, msg_recv);
+                msg = server_join_session(user, msg);
                 break;
             case MESSAGE:
-                msg_send = server_message(user, msg_recv);
+                msg = server_message(user, msg);
                 break;
             case LEAVE_SESS:
-                msg_send = server_leave_session(user, msg_recv);
+                msg = server_leave_session(user, msg);
                 break;
             default:
                 printf("Invalid message type\n");
@@ -84,8 +84,7 @@ void client_subroutine(User *user) {
         if (exiting)
             break;
 
-        msg_to_str(buf, msg_send);
-        printf("Sending msg '%s' to %s\n", buf, user->username);
+        msg_to_str(buf, msg);
         num_bytes = send(user->sockfd, buf, BUF_SIZE-1, FLAGS);
         if (num_bytes < 0) {
             printf("Error sending message to client\n");
@@ -118,8 +117,10 @@ void client_subroutine(User *user) {
                 Message msg;
                 strcpy(msg.source, user->username);
                 send_session_leave_notification(session, msg);
-            } else
+            } else {
+                printf("Deleted session '%s' as session has no members\n", session->name);
                 delete_session(sessions, session);
+            }
         }
 
         // Remove user from connected users list

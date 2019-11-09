@@ -31,6 +31,7 @@ Message server_login(User *user, Message msg) {
     user->logged_in = true;
     msg.type = LO_ACK;
     msg.size = 0;
+    printf("Logged in user '%s'\n", user->username);
     return msg;
 }
 
@@ -102,6 +103,7 @@ Message server_create_session(User *user, Message msg) {
     add_member_to_session(session, user);
     add_session(sessions, session);
     msg.type = NS_ACK;
+    printf("Created new session '%s'\n", session->name);
     send_session_creation_notification(session, msg);
     return msg;
 }
@@ -138,6 +140,7 @@ Message server_join_session(User *user, Message msg) {
 
     add_member_to_session(session, user);
     msg.type = JN_ACK;
+    printf("Added user '%s' to session '%s'\n", user->username, session->name);
     send_session_join_notification(session, msg);
     return msg;
 }
@@ -153,6 +156,7 @@ Message server_message(User *user, Message msg) {
 
     // TODO: Send message to all users in session
     UserList *members = user->session->members;
+    printf("Added new message from user '%s' to session '%s'\n", user->username, session->name);
     server_broadcast(members, msg);
     msg.type = MS_ACK;
     return msg;
@@ -173,11 +177,14 @@ Message server_leave_session(User *user, Message msg) {
     strcpy(msg.data, session->name);
     msg.size = strlen(msg.data);
     remove_member_from_session(session, user);
+    printf("Removed user '%s' from session '%s'\n", user->username, session->name);
     msg.type = LV_ACK;
     if (session->members->size > 0)
         send_session_leave_notification(session, msg);
-    else
+    else {
+        printf("Deleted session '%s' as session has no members\n", session->name);
         delete_session(sessions, session);
+    }
     return msg;
 }
 
