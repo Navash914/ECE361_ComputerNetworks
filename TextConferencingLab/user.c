@@ -1,3 +1,11 @@
+/*
+* user.c
+*
+* Written By:
+* Naveed Ashfaq - #1003859559
+* Yu Dong Feng - #1002587523
+*/
+
 #include "user.h"
 
 User *create_new_user(char *uname, char *pwd) {

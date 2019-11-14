@@ -1,3 +1,11 @@
+/*
+* client_actions.c
+*
+* Written By:
+* Naveed Ashfaq - #1003859559
+* Yu Dong Feng - #1002587523
+*/
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>

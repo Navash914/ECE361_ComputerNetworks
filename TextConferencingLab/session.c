@@ -1,3 +1,11 @@
+/*
+* session.c
+*
+* Written By:
+* Naveed Ashfaq - #1003859559
+* Yu Dong Feng - #1002587523
+*/
+
 #include "session.h"
 
 Session *create_new_session(char *name) {

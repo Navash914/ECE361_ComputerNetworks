@@ -1,3 +1,11 @@
+/*
+* session.h
+*
+* Written By:
+* Naveed Ashfaq - #1003859559
+* Yu Dong Feng - #1002587523
+*/
+
 #ifndef TCL_SESSION_H
 #define TCL_SESSION_H
 

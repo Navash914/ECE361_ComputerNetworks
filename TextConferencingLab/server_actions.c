@@ -1,3 +1,11 @@
+/*
+* server_actions.c
+*
+* Written By:
+* Naveed Ashfaq - #1003859559
+* Yu Dong Feng - #1002587523
+*/
+
 #include "server_actions.h"
 
 Message server_login(User *user, Message msg) {

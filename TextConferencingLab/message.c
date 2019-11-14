@@ -1,3 +1,11 @@
+/*
+* message.c
+*
+* Written By:
+* Naveed Ashfaq - #1003859559
+* Yu Dong Feng - #1002587523
+*/
+
 #include "message.h"
 
 // Converts a message struct into a string

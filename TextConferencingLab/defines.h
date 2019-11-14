@@ -1,3 +1,11 @@
+/*
+* defines.h
+*
+* Written By:
+* Naveed Ashfaq - #1003859559
+* Yu Dong Feng - #1002587523
+*/
+
 #ifndef TCL_DEFINES_H
 #define TCL_DEFINES_H
 
