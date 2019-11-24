@@ -30,13 +30,13 @@ void print_commands() {
     printf("  /joinsession <session_name>\n");
     printf("  /leavesession [session_name]\n");
     printf("  /list\n");
-    printf("  /all <message>\n");
-    printf("  /msg <session_name> <message>\n");
+    printf("  /all <message...>\n");
+    printf("  /msg <session_name> <message...>\n");
     printf("  /invite <username> [session_name]\n");
     printf("  /invitelist\n");
     printf("  /inviteresponse <session_name> <yes/no>\n");
-    printf("  /help\n");    // TODO: Add functionality for expanded help
-    printf("\nWhile in a session, simply type your message to send it to other users in the session.\n");
+    printf("  /help [command_name]\n");
+    printf("\nWhile in a session, simply type your message to send it to other users in your active session.\n");
     printf("\nYou can use /quit to exit the program anytime\n\n");
 }
 
@@ -71,6 +71,80 @@ int parse_client_command(char *command) {
         return INVITE_RESP;
     else
         return MESSAGE;
+}
+
+void client_help(char *input) {
+    char command[MAX_NAME];
+    int r = sscanf(input, "/help %s", command);
+    if (r < 1) {
+        print_commands();
+    } else {
+        if (!strcmp(command, "/login")) {
+            printf("\nUsage: /login <username> <password> <server-ip> <server-port>\n");
+            printf("<username>: your login username.\n");
+            printf("<password>: your login password.\n");
+            printf("<server-ip>: IP Address of the server to connect to, in dots and numbers notation.\n");
+            printf("<server-port>: Port number of server to connect to.\n");
+            printf("\nUse this command to login to the server.\n");
+        } else if (!strcmp(command, "/logout")) {
+            printf("\nUsage: /logout\n");
+            printf("\nUse this command to logout from the server.\n");
+            printf("You will automatically leave any sessions you have joined.\n");
+        } else if (!strcmp(command, "/joinsession")) {
+            printf("\nUsage: /joinsession <session_name>\n");
+            printf("<session_name>: name of session to join.\n");
+            printf("\nUse this command to join an existing session or to change your current active session.\n");
+        } else if (!strcmp(command, "/leavesession")) {
+            printf("\nUsage: /leavesession [session_name]\n");
+            printf("[session_name]: (optional) name of session to leave.\n");
+            printf("\nUse this command to leave a session that you are a member of.\n");
+            printf("If [session_name] is omitted, you will leave your current active session.\n");
+        } else if (!strcmp(command, "/createsession")) {
+            printf("\nUsage: /createsession <session_name>\n");
+            printf("<session_name>: name of session to create.\n");
+            printf("\nUse this command to create and join a new session.\n");
+        } else if (!strcmp(command, "/list")) {
+            printf("\nUsage: /list\n");
+            printf("\nUse this command to view a list of currently online users, as well ");
+            printf("as information about currently existing sessions and their members.\n");
+        } else if (!strcmp(command, "/help")) {
+            printf("\nUsage: /help [command_name]\n");
+            printf("[command_name]: (optional) name of command for extended help.\n");
+            printf("\nUse this command to view in-depth usage info of a command.\n");
+            printf("If [command_name] is omitted, will list all the available commands and their usage.\n");
+        } else if (!strcmp(command, "/quit")) {
+            printf("\nUsage: /quit\n");
+            printf("\nUse this command to quit the program.\n");
+            printf("You will automatically be logged out and leave any sessions you have joined.\n");
+        } else if (!strcmp(command, "/msg")) {
+            printf("\nUsage: /msg <session_name> <message...>\n");
+            printf("<session_name>: name of session to send message to.\n");
+            printf("<message...>: the message to send.\n");
+            printf("\nUse this command to send a message to a session that you are a member of.\n");
+            printf("This allows you to send messages to sessions that you have joined without having to actively switch to them.\n");
+        } else if (!strcmp(command, "/all")) {
+            printf("\nUsage: /all <message...>\n");
+            printf("<message...>: the message to send.\n");
+            printf("\nUse this command to send a message to all sessions that you are a member of.\n");
+        } else if (!strcmp(command, "/invite")) {
+            printf("\nUsage: /invite <username> [session_name]\n");
+            printf("<username>: the user to invite.\n");
+            printf("[session_name]: (optional) the session to invite the user to.\n");
+            printf("\nUse this command to send an invite to a user to join a session that you are a member of.\n");
+            printf("If [session_name] is omitted, will send an invite for your currently active session.\n");
+        } else if (!strcmp(command, "/invitelist")) {
+            printf("\nUsage: /invitelist\n");
+            printf("\nUse this command to view a list of all of your current invites.\n");
+        } else if (!strcmp(command, "/inviteresponse")) {
+            printf("\nUsage: /inviteresponse <session_name> <yes/no>\n");
+            printf("<session_name>: the session invite you want to respond to.\n");
+            printf("<yes/no>: your response to the invite. 'yes' to accept, 'no' to decline.\n");
+            printf("\nUse this command to respond to an invite.\n");
+        } else {
+            printf("'%s' is not a valid command.\nUse /help to view a list of available commands.\n", command);
+        }
+        printf("\n");
+    }
 }
 
 int client_login(char *input, Message *msg) {

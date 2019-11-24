@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
         }
 
         if (command_type == HELP) {
-            print_commands();
+            client_help(buf);
             continue;
         }
             

@@ -18,6 +18,7 @@ void print_commands();
 
 int parse_client_command(char *command);
 
+void client_help(char *input);
 int client_login(char *input, Message *msg);
 bool client_logout(char *input, Message *msg);
 bool client_query(char *input, Message *msg);
