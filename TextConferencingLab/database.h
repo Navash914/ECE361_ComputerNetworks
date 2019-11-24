@@ -20,6 +20,8 @@
 
 #define USER_LIST_FILE "user_list.txt"
 
+typedef struct usersession UserSession;
+
 // Defines a list of users
 typedef struct userlist {
     unsigned int size;
@@ -33,6 +35,12 @@ typedef struct sessionlist {
     Session *head;
     Session *tail;
 } SessionList;
+
+typedef struct usersessionlist {
+    unsigned int size;
+    UserSession *head;
+    UserSession *tail;
+} UserSessionList;
 
 extern UserList *users_db;
 extern UserList *connected_users;
@@ -52,5 +60,11 @@ void add_session(SessionList *list, Session *node);
 void delete_session(SessionList *list, Session *target);
 Session *find_session(SessionList *list, char *name);
 void clear_session_list(SessionList *list);
+
+// UserSessionList operations
+void add_usersession(UserSessionList *list, UserSession *node);
+void delete_usersession(UserSessionList *list, UserSession *target);
+UserSession *find_usersession(UserSessionList *list, Session *session);
+void clear_usersession_list(UserSessionList *list);
 
 #endif

@@ -95,6 +95,7 @@ int main(int argc, char **argv) {
     // Main client loop
     while (!status.exiting) {
         size_t line_size = getline(&line_buf, &buf_size, stdin);
+        fflush(stdin);
         if (line_size <= 0)
             continue;
         line_buf[line_size] = '\0';
@@ -146,6 +147,12 @@ int main(int argc, char **argv) {
                 break;
             case MESSAGE:
                 valid = client_message(buf, &msg);
+                break;
+            case MESSAGE_SPEC:
+                valid = client_message_specific(buf, &msg);
+                break;
+            case MESSAGE_ALL:
+                valid = client_message_all(buf, &msg);
                 break;
             case LEAVE_SESS:
                 valid = client_leave_session(buf, &msg);

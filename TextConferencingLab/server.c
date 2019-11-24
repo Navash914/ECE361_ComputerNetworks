@@ -73,6 +73,12 @@ void client_subroutine(User *user) {
             case MESSAGE:
                 msg = server_message(user, msg);
                 break;
+            case MESSAGE_SPEC:
+                msg = server_message_specific(user, msg);
+                break;
+            case MESSAGE_ALL:
+                msg = server_message_all(user, msg);
+                break;
             case LEAVE_SESS:
                 msg = server_leave_session(user, msg);
                 break;
@@ -110,7 +116,7 @@ void client_subroutine(User *user) {
         strcpy(buf, user->username);
 
         // Exit user out of session
-        if (user->session != NULL) {
+        while (user->session != NULL) {
             Session *session = user->session;
             remove_member_from_session(session, user);
             printf("Removed user '%s' from session '%s'\n", user->username, session->name);
@@ -199,6 +205,10 @@ int main(int argc, char **argv) {
 
         User *user = create_new_user(NULL, NULL);
         user->sockfd = new_sockfd;
+        user->joined_sessions = (UserSessionList *) malloc (sizeof(UserSessionList));
+        user->joined_sessions->head = NULL;
+        user->joined_sessions->tail = NULL;
+        user->joined_sessions->size = 0;
         add_user(connected_users, user);
 
         pthread_create(&user->thread, NULL, (void * (*)(void *)) client_subroutine, user);

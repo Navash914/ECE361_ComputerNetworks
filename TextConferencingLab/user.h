@@ -18,6 +18,7 @@
 #include "defines.h"
 
 typedef struct session Session; // Forward declaration
+typedef struct usersessionlist UserSessionList; // Forward declaration
 
 // Holds information about a user
 typedef struct user {
@@ -28,6 +29,7 @@ typedef struct user {
 
     bool logged_in;
     Session *session;
+    UserSessionList *joined_sessions;
 
     pthread_t thread;
 

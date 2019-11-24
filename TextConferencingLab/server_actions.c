@@ -67,6 +67,8 @@ Message server_query(User *user, Message msg) {
         while (current != NULL) {
             strcat(buf, "  ");
             strcat(buf, current->name);
+            if (current == user->session)
+                strcat(buf, " [currently active]");
             strcat(buf, ": \n");
             User *user = current->members->head;
             while (user != NULL) {
@@ -90,7 +92,7 @@ Message server_create_session(User *user, Message msg) {
     char buf[MAX_DATA];
     // TODO: Check if session exists. Return NAK if it does
     if (find_session(sessions, msg.data) != NULL) {
-        // Session exits. Cannot create session with duplicate name
+        // Session exists. Cannot create session with duplicate name
         msg.type = NS_NAK;
         sprintf(buf, "%s Session already exists.\0", msg.data);
         strcpy(msg.data, buf);
@@ -98,13 +100,13 @@ Message server_create_session(User *user, Message msg) {
         return msg;
     }
 
-    if (user->session != NULL) {
+    /*if (user->session != NULL) {
         msg.type = NS_NAK;
         sprintf(buf, "%s You are already a member of '%s', please leave that session before creating a new one.\0", msg.data, user->session->name);
         strcpy(msg.data, buf);
         msg.size = strlen(msg.data);
         return msg;
-    }
+    }*/
 
     // TODO: Create and join session and return session name in msg
     Session *session = create_new_session(msg.data);
@@ -138,23 +140,32 @@ Message server_join_session(User *user, Message msg) {
         return msg;
     }
 
+    /*
     if (user->session != NULL) {
         msg.type = JN_NAK;
         sprintf(buf, "%s You are already a member of '%s', please leave that session before joining a new one.\0", msg.data, user->session->name);
         strcpy(msg.data, buf);
         msg.size = strlen(msg.data);
         return msg;
-    }
+    }*/
 
-    add_member_to_session(session, user);
+    bool is_new = add_member_to_session(session, user);
     msg.type = JN_ACK;
-    printf("Added user '%s' to session '%s'\n", user->username, session->name);
-    send_session_join_notification(session, msg);
+    if (!is_new) {
+        printf("Moved user '%s' to session '%s'\n", user->username, session->name);
+        sprintf(msg.data, "0 %s\0", session->name);
+        msg.size = strlen(msg.data);
+    } else {
+        printf("Added user '%s' to session '%s'\n", user->username, session->name);
+        sprintf(msg.data, "1 %s\0", session->name);
+        msg.size = strlen(msg.data);
+        send_session_join_notification(session, msg);
+    }
     return msg;
 }
 
 Message server_message(User *user, Message msg) {
-    // TODO: Check if user is in session. If not, send NAK
+    char buf[BUF_SIZE];
     if (user->session == NULL) {
         msg.type = MS_NAK;
         strcpy(msg.data, "Please join a session before sending messages.\0");
@@ -162,29 +173,110 @@ Message server_message(User *user, Message msg) {
         return msg;
     }
 
-    // TODO: Send message to all users in session
     UserList *members = user->session->members;
+    sprintf(buf, "%s %s\0", user->session->name, msg.data);
+    strcpy(msg.data, buf);
+    msg.size = strlen(msg.data);
     printf("Added new message from user '%s' to session '%s'\n", user->username, user->session->name);
     server_broadcast(members, msg);
     msg.type = MS_ACK;
     return msg;
 }
 
-Message server_leave_session(User *user, Message msg) {
-    char buf[MAX_DATA];
+Message server_message_specific(User *user, Message msg) {
+    char buf[BUF_SIZE];
+    char session_name[MAX_NAME];
+    void extract_name_and_info2(char *src, char *name, char *data);
+    extract_name_and_info2(msg.data, session_name, buf);
+    Session *session = find_session(sessions, session_name);
+    
+    if (!session) {
+        // Session does not exist
+        msg.type = MS_NAK;
+        sprintf(msg.data, "Session '%s' does not exist.\0", session_name);
+        msg.size = strlen(msg.data);
+        return msg;
+    }
 
-    Session *session = user->session;
+    if (!member_exists_in_session(session, user)) {
+        // Not a member of session
+        msg.type = MS_NAK;
+        sprintf(msg.data, "You are not a member of session '%s'.\0", session_name);
+        msg.size = strlen(msg.data);
+        return msg;
+    }
 
-    if (session == NULL) {
-        msg.type = LV_NAK;
+    msg.type = MESSAGE;
+    UserList *members = session->members;
+    sprintf(msg.data, "%s %s\0", session->name, buf);
+    msg.size = strlen(msg.data);
+    server_broadcast(members, msg);
+    msg.type = MS_ACK;
+    return msg;
+}
+
+Message server_message_all(User *user, Message msg) {
+    char buf[BUF_SIZE];
+    if (user->joined_sessions->size == 0) {
+        msg.type = MS_NAK;
         strcpy(msg.data, "You are not a member of any session.\0");
         msg.size = strlen(msg.data);
         return msg;
     }
 
-    strcpy(msg.data, session->name);
-    msg.size = strlen(msg.data);
+    msg.type = MESSAGE;
+    strcpy(buf, msg.data);
+    UserSession *current = user->joined_sessions->head;
+    while (current != NULL) {
+        UserList *members = current->session->members;
+        sprintf(msg.data, "%s %s\0", current->session->name, buf);
+        msg.size = strlen(msg.data);
+        server_broadcast(members, msg);
+        current = current->next;
+    }
+    msg.type = MS_ACK;
+    return msg;    
+}
+
+Message server_leave_session(User *user, Message msg) {
+    char buf[MAX_DATA];
+
+    Session *session;
+    if (msg.size > 0) {
+        session = find_session(sessions, msg.data);
+        if (!session) {
+            // Session does not exist
+            msg.type = LV_NAK;
+            sprintf(buf, "Session '%s' does not exist.\0", msg.data);
+            strcpy(msg.data, buf);
+            msg.size = strlen(msg.data);
+            return msg;
+        }
+    } else 
+        session = user->session;
+
+    if (session == NULL) {
+        msg.type = LV_NAK;
+        strcpy(msg.data, "You are not an active member of any session.\0");
+        msg.size = strlen(msg.data);
+        return msg;
+    }
+
+    if (!member_exists_in_session(session, user)) {
+        msg.type = LV_NAK;
+        sprintf(buf, "You are not a member of Session '%s'.\0", msg.data);
+        strcpy(msg.data, buf);
+        msg.size = strlen(msg.data);
+        return msg;
+    }
+
+    bool leaving_active_session = user->session == session;
     remove_member_from_session(session, user);
+    if (leaving_active_session && user->session)
+        sprintf(msg.data, "%s %s", session->name, user->session->name);
+    else
+        strcpy(msg.data, session->name);
+    msg.size = strlen(msg.data);
     printf("Removed user '%s' from session '%s'\n", user->username, session->name);
     msg.type = LV_ACK;
     if (session->members->size > 0)
@@ -207,7 +299,7 @@ void send_session_creation_notification(Session *session, Message msg) {
 
 void send_session_join_notification(Session *session, Message msg) {
     char buf[BUF_SIZE];
-    sprintf(buf, "%s has joined the session!", msg.source);
+    sprintf(buf, "%s has joined the session '%s'!", msg.source, session->name);
     strcpy(msg.data, buf);
     msg.size = strlen(msg.data);
     msg.type = NOTIFICATION;
@@ -216,7 +308,7 @@ void send_session_join_notification(Session *session, Message msg) {
 
 void send_session_leave_notification(Session *session, Message msg) {
     char buf[BUF_SIZE];
-    sprintf(buf, "%s has left the session.", msg.source);
+    sprintf(buf, "%s has left the session '%s'.", msg.source, session->name);
     strcpy(msg.data, buf);
     msg.size = strlen(msg.data);
     msg.type = NOTIFICATION;
@@ -239,4 +331,18 @@ void server_broadcast(UserList *list, Message msg) {
         }
         user = user->next;
     }
+}
+
+void extract_name_and_info2(char *src, char *name, char *data) {
+    char *s = src, *d = name;
+    while (*s != ' ' && *s != '\0')
+        *d++ = *s++;
+    *d = '\0';
+
+    d = data;
+    if (*s != '\0')
+        s++;
+    while (*s != '\0')
+        *d++ = *s++;
+    *d = '\0';
 }

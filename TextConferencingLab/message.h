@@ -34,6 +34,8 @@
 #define JN_NAK 12
 
 #define MESSAGE 13
+#define MESSAGE_SPEC 21
+#define MESSAGE_ALL 22
 #define MS_ACK 14
 #define MS_NAK 15
 

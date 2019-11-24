@@ -39,19 +39,34 @@ void free_session(Session *session) {
     free(session);
 }
 
+UserSession* create_usersession_node(Session *session) {
+    UserSession *node = (UserSession *) malloc (sizeof(UserSession));
+    node->session = session;
+    node->next = NULL;
+    node->prev = NULL;
+    return node;
+}
+
 UserList *get_session_members(Session *session) {
     return session->members;
 }
 
 bool member_exists_in_session(Session *session, User *user) {
-    return user->session == session;
+    if (user->session == session)
+        return true;
+    if (find_user(session->members, user->username))
+        return true;
+    return false;
 }
 
 bool add_member_to_session(Session *session, User *user) {
-    if (user->session != NULL)
+    if (member_exists_in_session(session, user)) {
+        user->session = session;
         return false;
+    }
     User *user_in_session = copy_user(user);
     add_user(session->members, user_in_session);
+    add_usersession(user->joined_sessions, create_usersession_node(session));
     user->session = session;
     return true;
 }
@@ -61,6 +76,12 @@ bool remove_member_from_session(Session *session, User *user) {
     if (user_in_session == NULL)
         return false;
     delete_user(session->members, user_in_session);
-    user->session = NULL;
+    delete_usersession(user->joined_sessions, find_usersession(user->joined_sessions, session));
+    if (user->session == session) {
+        if (user->joined_sessions->size == 0)
+            user->session = NULL;
+        else
+            user->session = user->joined_sessions->head->session;
+    }
     return true;
 }

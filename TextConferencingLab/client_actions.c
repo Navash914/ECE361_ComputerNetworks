@@ -54,6 +54,10 @@ int parse_client_command(char *command) {
         return HELP;
     else if (!strcmp(command, "/quit"))
         return -1;
+    else if (!strcmp(command, "/msg"))
+        return MESSAGE_SPEC;
+    else if (!strcmp(command, "/all"))
+        return MESSAGE_ALL;
     else
         return MESSAGE;
 }
@@ -162,15 +166,64 @@ bool client_message(char *input, Message *msg) {
     return true;
 }
 
+bool client_message_specific(char *input, Message *msg) {
+    // Input format: /msg <session_name> <message>
+    char buf[MAX_NAME];
+    char message[MAX_DATA];
+    int r = sscanf(input, "/msg %s", buf);
+    if (r < 1) {
+        printf("Invalid usage of /msg command.\nUsage: /msg <session_name> <message>\n");
+        return false;
+    }
+    input += strlen("/msg ");
+    extract_name_and_info(input, buf, message);
+    int msg_size = strlen(message);
+    if (msg_size == 0) {
+        printf("Invalid usage of /msg command.\nUsage: /msg <session_name> <message>\n");
+        return false;
+    } else if (msg_size + strlen(buf) + 1 > MAX_DATA) {
+        printf("Message too large to send\n");
+        return false;
+    }
+    sprintf(msg->data, "%s %s", buf, message);
+    msg->size = strlen(msg->data);
+    return true; 
+}
+
+bool client_message_all(char *input, Message *msg) {
+    // Input format: /all <message>
+    char buf[MAX_NAME];
+    char message[MAX_DATA];
+    extract_name_and_info(input, buf, message);
+    int msg_size = strlen(message);
+    if (msg_size == 0) {
+        printf("Invalid usage of /all command.\nUsage: /all <message>\n");
+        return false;
+    } else if (msg_size > MAX_DATA) {
+        printf("Message too large to send\n");
+        return false;
+    }
+    strcpy(msg->data, message);
+    msg->size = msg_size;
+    return true; 
+}
+
 bool client_leave_session(char *input, Message *msg) {
-    // Input format: /leavesession
-    msg->size = 0;
+    // Input format: /leavesession <optional:session_name>
+    char session_name[MAX_NAME];
+    int r = sscanf(input, "/leavesession %s", session_name);
+    if (r < 1) {
+        msg->size = 0;
+    } else {
+        strcpy(msg->data, session_name);
+        msg->size = strlen(session_name);
+    }
+        
     return true;
 }
 
 void client_response(Message msg) {
     char name_buf[MAX_NAME], data_buf[MAX_DATA];
-    void extract_name_and_info(char *src, char *name, char *data);
     switch(msg.type) {
         case LO_ACK:
             printf("%s successfully logged in.\n", msg.source);
@@ -190,22 +243,29 @@ void client_response(Message msg) {
             break;
         case NS_NAK:
             extract_name_and_info(msg.data, name_buf, data_buf);
-            //sscanf(msg.data, "%s %[^\0]", name_buf, data_buf);
             printf("Could not create session '%s'.\nReason: %s\n", name_buf, data_buf);
             break;
         case JN_ACK:
-            printf("Successfully joined session '%s'\n", msg.data);
+            {
+            int is_new = 0;
+            sscanf(msg.data, "%d %s", &is_new, name_buf);
+            if (is_new)        
+                printf("Successfully joined and moved active session to '%s'\n", name_buf);
+            else
+                printf("Successfully moved active session to '%s'\n", name_buf);
             break;
+            }
         case JN_NAK:
             extract_name_and_info(msg.data, name_buf, data_buf);
-            //sscanf(msg.data, "%s %[^\0]", name_buf, data_buf);
             printf("Could not join session '%s'.\nReason: %s\n", name_buf, data_buf);
             break;
         case NOTIFICATION:
             printf("\nSERVER NOTIFICATION => %s\n\n", msg.data);
             break;
         case MESSAGE:
-            printf("%s: %s", msg.source, msg.data);
+            extract_name_and_info(msg.data, name_buf, data_buf);
+            printf("[%s] %s: %s", name_buf, msg.source, data_buf);
+            //printf("%s: %s", msg.source, msg.data);
             break;
         case MS_ACK:
             break;
@@ -213,10 +273,14 @@ void client_response(Message msg) {
             printf("Could not send message.\nReason: %s\n",msg.data);
             break;
         case LV_ACK:
-            printf("Successfully left session '%s'\n", msg.data);
+            {
+            int r = sscanf(msg.data, "%s %s", name_buf, data_buf);
+            printf("Successfully left session '%s'\n", name_buf);
+            if (r > 1)
+                printf("New active session is '%s'\n", data_buf);
             break;
+            }
         case LV_NAK:
-            //sscanf(msg->data, "%s %[^\0]", name_buf, data_buf);
             printf("Could not leave session.\nReason: %s\n", msg.data);
             break;    
     }
@@ -224,12 +288,13 @@ void client_response(Message msg) {
 
 void extract_name_and_info(char *src, char *name, char *data) {
     char *s = src, *d = name;
-    while (*s != ' ')
+    while (*s != ' ' && *s != '\0')
         *d++ = *s++;
     *d = '\0';
 
     d = data;
-    s++;
+    if (*s != '\0')
+        s++;
     while (*s != '\0')
         *d++ = *s++;
     *d = '\0';

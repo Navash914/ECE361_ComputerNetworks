@@ -27,8 +27,18 @@ typedef struct session {
     struct session *prev;
 } Session;
 
+typedef struct usersession {
+    Session *session;
+
+    // Support linked list structure
+    struct usersession *next;
+    struct usersession *prev;
+} UserSession;
+
 Session *create_new_session(char *name);
 void free_session(Session *session);
+
+UserSession* create_usersession_node(Session *session);
 
 UserList *get_session_members(Session *session);
 bool member_exists_in_session(Session *session, User *user);

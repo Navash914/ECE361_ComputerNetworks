@@ -27,6 +27,7 @@ void init_user(User *user) {
     user->sockfd = -1;
     user->logged_in = false;
     user->session = NULL;
+    user->joined_sessions = NULL;
 
     user->next = NULL;
     user->prev = NULL;

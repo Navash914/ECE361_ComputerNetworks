@@ -139,6 +139,8 @@ void clear_user_list(UserList *list) {
 		User *next = list->head->next;
         next->prev = NULL;
         list->head->next = NULL;
+        clear_usersession_list(list->head->joined_sessions);
+        free(list->head->joined_sessions);
 		free_user(list->head);
 		list->head = next;
 	}
@@ -221,6 +223,87 @@ void clear_session_list(SessionList *list) {
         next->prev = NULL;
         list->head->next = NULL;
 		free_session(list->head);
+		list->head = next;
+	}
+	list->tail = NULL;
+	list->size = 0;
+}
+
+void add_usersession(UserSessionList *list, UserSession *node) {
+    if (list == NULL) {
+        printf("No list to append to\n");
+        return;
+    }
+    if (list->head == NULL) {
+		// List is currently empty
+		list->head = node;
+		list->tail = node;
+        node->next = NULL;
+        node->prev = NULL;
+	} else {
+		list->tail->next = node;	// Append to end of list
+        node->prev = list->tail;
+		list->tail = list->tail->next;	// Move tail to new end of list
+        node->next = NULL;
+	}
+	list->size++;	// Update list size
+}
+
+void delete_usersession(UserSessionList *list, UserSession *target) {
+    if (list == NULL) {
+        printf("No list to delete from\n");
+        return;
+    }
+    if (list->size == 1) {
+		// This is the only node in the list
+		list->head = NULL;
+		list->tail = NULL;
+	} else if (target == list->head) {
+		// Removing head
+		list->head = list->head->next;
+        list->head->prev = NULL;
+		target->next = NULL;
+	} else {
+        UserSession *prev = target->prev;
+		prev->next = target->next;
+		target->next = NULL;
+        target->prev = NULL;
+		if (target == list->tail) {
+			// Update new tail
+			list->tail = prev;
+		} else {
+            prev->next->prev = prev;
+        }
+	}
+	list->size--;	// Update list size
+
+    free(target);
+}
+
+UserSession *find_usersession(UserSessionList *list, Session *session) {
+    if (list == NULL) {
+        printf("No list to search in\n");
+        return NULL;
+    }
+    UserSession *current = list->head;
+    while (current != NULL) {
+        if (current->session == session)
+            return current;
+        current = current->next;
+    }
+    return NULL;
+}
+
+void clear_usersession_list(UserSessionList *list) {
+    if (list == NULL) {
+        printf("No list to clear\n");
+        return;
+    }
+	while (list->head != NULL) {
+		UserSession *next = list->head->next;
+        next->prev = NULL;
+        list->head->next = NULL;
+		free(list->head);
 		list->head = next;
 	}
 	list->tail = NULL;

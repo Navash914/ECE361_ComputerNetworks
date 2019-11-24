@@ -21,6 +21,8 @@ Message server_query(User *user, Message msg);
 Message server_create_session(User *user, Message msg);
 Message server_join_session(User *user, Message msg);
 Message server_message(User *user, Message msg);
+Message server_message_specific(User *user, Message msg);
+Message server_message_all(User *user, Message msg);
 Message server_leave_session(User *user, Message msg);
 
 void send_session_creation_notification(Session *session, Message msg);
