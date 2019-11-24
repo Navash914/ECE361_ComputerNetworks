@@ -43,6 +43,18 @@
 #define LV_ACK 17
 #define LV_NAK 18
 
+#define INVITE 23
+#define INVITE_ACK 24
+#define INVITE_NAK 25
+
+#define INVITE_LIST 26
+#define IL_ACK 27
+#define IL_NAK 28
+
+#define INVITE_RESP 29
+#define IR_ACK 30
+#define IR_NAK 31
+
 #define NOTIFICATION 19
 
 #define HELP 20

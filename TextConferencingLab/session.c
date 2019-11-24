@@ -68,6 +68,7 @@ bool add_member_to_session(Session *session, User *user) {
     add_user(session->members, user_in_session);
     add_usersession(user->joined_sessions, create_usersession_node(session));
     user->session = session;
+    decline_user_invite_to_session(session, user);
     return true;
 }
 
@@ -84,4 +85,37 @@ bool remove_member_from_session(Session *session, User *user) {
             user->session = user->joined_sessions->head->session;
     }
     return true;
+}
+
+bool invite_user_to_session(Session *session, User *user) {
+    if (member_exists_in_session(session, user))
+        return false;
+    if (user_invited_to_session(session, user))
+        return false;
+    add_usersession(user->invited_sessions, create_usersession_node(session));
+    return true;
+}
+
+bool accept_user_invite_to_session(Session *session, User *user) {
+    UserSession *usersession = find_usersession(user->invited_sessions, session);
+    if (!usersession)
+        return false;
+    delete_usersession(user->invited_sessions, usersession);
+    add_member_to_session(session, user);
+    return true;
+}
+
+bool decline_user_invite_to_session(Session *session, User *user) {
+    UserSession *usersession = find_usersession(user->invited_sessions, session);
+    if (!usersession)
+        return false;
+    delete_usersession(user->invited_sessions, usersession);
+    return true;
+}
+
+bool user_invited_to_session(Session *session, User *user) {
+    if (!session || !user)
+        return false;
+    if (find_usersession(user->invited_sessions, session))
+        return true;
 }

@@ -79,6 +79,15 @@ void client_subroutine(User *user) {
             case MESSAGE_ALL:
                 msg = server_message_all(user, msg);
                 break;
+            case INVITE:
+                msg = server_invite(user, msg);
+                break;
+            case INVITE_LIST:
+                msg = server_invite_list(user, msg);
+                break;
+            case INVITE_RESP:
+                msg = server_invite_response(user, msg);
+                break;
             case LEAVE_SESS:
                 msg = server_leave_session(user, msg);
                 break;
@@ -205,10 +214,17 @@ int main(int argc, char **argv) {
 
         User *user = create_new_user(NULL, NULL);
         user->sockfd = new_sockfd;
+
         user->joined_sessions = (UserSessionList *) malloc (sizeof(UserSessionList));
         user->joined_sessions->head = NULL;
         user->joined_sessions->tail = NULL;
         user->joined_sessions->size = 0;
+
+        user->invited_sessions = (UserSessionList *) malloc (sizeof(UserSessionList));
+        user->invited_sessions->head = NULL;
+        user->invited_sessions->tail = NULL;
+        user->invited_sessions->size = 0;
+
         add_user(connected_users, user);
 
         pthread_create(&user->thread, NULL, (void * (*)(void *)) client_subroutine, user);

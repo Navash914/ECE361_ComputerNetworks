@@ -238,6 +238,160 @@ Message server_message_all(User *user, Message msg) {
     return msg;    
 }
 
+Message server_invite(User *user, Message msg) {
+    if (!user->session) {
+        // User is not a member of any sessions
+        msg.type = INVITE_NAK;
+        strcpy(msg.data, "You are not a member of any sessions.\0");
+        msg.size = strlen(msg.data);
+        return msg;
+    }
+
+    char username[MAX_NAME], session_name[MAX_NAME];
+    int r = sscanf(msg.data, "%s %s", username, session_name);
+    if (!find_user(users_db, username)) {
+        // User does not exist
+        msg.type = INVITE_NAK;
+        sprintf(msg.data, "User '%s' does not exist.\0", username);
+        msg.size = strlen(msg.data);
+        return msg;
+    }
+
+    User *invited_user = find_user(connected_users, username);
+    if (!invited_user) {
+        // User is not online
+        msg.type = INVITE_NAK;
+        sprintf(msg.data, "User '%s' is not online.\0", username);
+        msg.size = strlen(msg.data);
+        return msg;
+    }
+
+    if (invited_user == user) {
+        // Cannot invite self
+        msg.type = INVITE_NAK;
+        strcpy(msg.data, "You cannot invite yourself!\0");
+        msg.size = strlen(msg.data);
+        return msg;
+    }
+
+    // User is valid. Parse session now
+
+    Session *session;
+    if (r > 1)
+        session = find_session(sessions, session_name);
+    else
+        session = user->session;
+
+    if (!session) {
+        // Session does not exist
+        msg.type = INVITE_NAK;
+        sprintf(msg.data, "Session '%s' does not exist.\0", session_name);
+        msg.size = strlen(msg.data);
+        return msg;
+    }
+
+    if (!member_exists_in_session(session, user)) {
+        // User not a member of session
+        msg.type = INVITE_NAK;
+        sprintf(msg.data, "You are not a member of session '%s'.\0", session->name);
+        msg.size = strlen(msg.data);
+        return msg;
+    }
+
+    if (member_exists_in_session(session, invited_user)) {
+        // Invited user is already a member of session
+        msg.type = INVITE_NAK;
+        sprintf(msg.data, "User '%s' is already a member of session '%s'.\0", invited_user->username, session->name);
+        msg.size = strlen(msg.data);
+        return msg;
+    }
+
+    if (user_invited_to_session(session, invited_user)) {
+        // Invited user is already invited to the session
+        msg.type = INVITE_NAK;
+        sprintf(msg.data, "User '%s' is already invited to the session '%s'.\0", invited_user->username, session->name);
+        msg.size = strlen(msg.data);
+        return msg;
+    }
+
+    // Invite is valid. Send invite.
+    invite_user_to_session(session, invited_user);
+
+    msg.type = INVITE;
+    sprintf(msg.data, "%s %s\0", user->username, session->name);
+    msg.size = strlen(msg.data);
+    send_msg_to_user(invited_user, msg);
+
+    msg.type = INVITE_ACK;
+    sprintf(msg.data, "%s %s\0", invited_user->username, session->name);
+    msg.size = strlen(msg.data);
+    return msg;
+}
+
+Message server_invite_list(User *user, Message msg) {
+    char buf[MAX_DATA];
+    if (user->invited_sessions->size == 0) {
+        strcpy(buf, "You have no invites.\n");
+    } else {
+        strcpy(buf, "You are invited to the following sessions:\n");
+        UserSession *current = user->invited_sessions->head;
+        while (current != NULL) {
+            strcat(buf, "  ");
+            strcat(buf, current->session->name);
+            strcat(buf, ": \n");
+            User *user = current->session->members->head;
+            while (user != NULL) {
+                strcat(buf, "    -> ");
+                strcat(buf, user->username);
+                strcat(buf, "\n");
+                user = user->next;
+            }
+            current = current->next;
+        }
+        strcat(buf, "\n");
+    }
+
+    msg.type = IL_ACK;
+    strcpy(msg.data, buf);
+    msg.size = strlen(msg.data);
+    return msg;
+}
+
+Message server_invite_response(User *user, Message msg) {
+    char session_name[MAX_NAME], response[8];
+    sscanf(msg.data, "%s %s", session_name, response);
+
+    Session *session = find_session(sessions, session_name);
+    if (!session) {
+        msg.type = IR_NAK;
+        sprintf(msg.data, "Session '%s' does not exist.\0", session_name);
+        msg.size = strlen(msg.data);
+        return msg;
+    }
+
+    if (!user_invited_to_session(session, user)) {
+        msg.type = IR_NAK;
+        sprintf(msg.data, "You are not invited to session '%s'.\0", session_name);
+        msg.size = strlen(msg.data);
+        return msg;
+    }
+
+    if (!strcmp(response, "yes")) {
+        accept_user_invite_to_session(session, user);
+        send_session_join_notification(session, msg);
+    } else if (!strcmp(response, "no"))
+        decline_user_invite_to_session(session, user);
+    else {
+        msg.type = IR_NAK;
+        sprintf(msg.data, "Server side error in parsing response: '%s'\0", response);
+        msg.size = strlen(msg.data);
+        return msg;
+    }
+
+    msg.type = IR_ACK;
+    return msg;
+}
+
 Message server_leave_session(User *user, Message msg) {
     char buf[MAX_DATA];
 
@@ -315,6 +469,15 @@ void send_session_leave_notification(Session *session, Message msg) {
     server_broadcast(session->members, msg);
 }
 
+void send_msg_to_user(User *user, Message msg) {
+    char buf[BUF_SIZE];
+    msg_to_str(buf, msg);
+    int num_bytes = send(user->sockfd, buf, BUF_SIZE-1, FLAGS);
+    if (num_bytes < 0) {
+        printf("Error sending message to %s\n", user->username);
+    }
+}
+
 void server_broadcast(UserList *list, Message msg) {
     char buf[BUF_SIZE];
     int num_bytes;
@@ -325,10 +488,7 @@ void server_broadcast(UserList *list, Message msg) {
             user = user->next;
             continue;
         }
-        num_bytes = send(user->sockfd, buf, BUF_SIZE-1, FLAGS);
-        if (num_bytes < 0) {
-            printf("Error sending message to %s\n", user->username);
-        }
+        send_msg_to_user(user, msg);
         user = user->next;
     }
 }

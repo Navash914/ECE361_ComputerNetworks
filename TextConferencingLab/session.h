@@ -42,7 +42,13 @@ UserSession* create_usersession_node(Session *session);
 
 UserList *get_session_members(Session *session);
 bool member_exists_in_session(Session *session, User *user);
+
 bool add_member_to_session(Session *session, User *user);
 bool remove_member_from_session(Session *session, User *user);
+
+bool invite_user_to_session(Session *session, User *user);
+bool accept_user_invite_to_session(Session *session, User *user);
+bool decline_user_invite_to_session(Session *session, User *user);
+bool user_invited_to_session(Session *session, User *user);
 
 #endif

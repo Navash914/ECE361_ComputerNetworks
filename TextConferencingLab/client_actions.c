@@ -32,6 +32,9 @@ void print_commands() {
     printf("  /list\n");
     printf("  /all <message>\n");
     printf("  /msg <session_name> <message>\n");
+    printf("  /invite <username> [session_name]\n");
+    printf("  /invitelist\n");
+    printf("  /inviteresponse <session_name> <yes/no>\n");
     printf("  /help\n");    // TODO: Add functionality for expanded help
     printf("\nWhile in a session, simply type your message to send it to other users in the session.\n");
     printf("\nYou can use /quit to exit the program anytime\n\n");
@@ -60,6 +63,12 @@ int parse_client_command(char *command) {
         return MESSAGE_SPEC;
     else if (!strcmp(command, "/all"))
         return MESSAGE_ALL;
+    else if (!strcmp(command, "/invite"))
+        return INVITE;
+    else if (!strcmp(command, "/invitelist"))
+        return INVITE_LIST;
+    else if (!strcmp(command, "/inviteresponse"))
+        return INVITE_RESP;
     else
         return MESSAGE;
 }
@@ -210,8 +219,50 @@ bool client_message_all(char *input, Message *msg) {
     return true; 
 }
 
+bool client_invite(char *input, Message *msg) {
+    // Input format: /invite <username> [session_name]
+    char username[MAX_NAME], session_name[MAX_NAME];
+    int r = sscanf(input, "/invite %s %s", username, session_name);
+    if (r < 1) {
+        printf("Invalid usage of /invite command.\nUsage: /invite <username> [session_name]\n");
+        return false;
+    } else if (r == 1) {
+        // No inputted session name
+        strcpy(msg->data, username);
+    } else {
+        sprintf(msg->data, "%s %s\0", username, session_name);
+    }
+
+    msg->size = strlen(msg->data);
+    return true;
+}
+
+bool client_invite_list(char *input, Message *msg) {
+    // Input format: /invitelist
+    msg->size = 0;
+    return true;
+}
+
+bool client_invite_response(char *input, Message *msg) {
+    // Input format: /inviteresponse <session_name> <yes/no>
+    char session_name[MAX_NAME], response[8];
+    int r = sscanf(input, "/inviteresponse %s %s", session_name, response);
+    if (r < 2) {
+        printf("Invalid usage of /inviteresponse command.\nUsage: /inviteresponse <session_name> <yes/no>\n");
+        return false;
+    }
+    if (strcmp(response, "yes") && strcmp(response, "no")) {
+        printf("Please input your response as 'yes' to accept or 'no' to decline the invitation\n");
+        return false;
+    }
+
+    sprintf(msg->data, "%s %s\0", session_name, response);
+    msg->size = strlen(msg->data);
+    return true;
+}
+
 bool client_leave_session(char *input, Message *msg) {
-    // Input format: /leavesession <optional:session_name>
+    // Input format: /leavesession [session_name]
     char session_name[MAX_NAME];
     int r = sscanf(input, "/leavesession %s", session_name);
     if (r < 1) {
@@ -273,6 +324,35 @@ void client_response(Message msg) {
             break;
         case MS_NAK:
             printf("Could not send message.\nReason: %s\n",msg.data);
+            break;
+        case INVITE:
+            sscanf(msg.data, "%s %s", name_buf, data_buf);
+            printf("\nYou have received an invite from %s to join the session %s\n", name_buf, data_buf);
+            printf("Use the command /inviteresponse <session_name> <yes/no> to respond to the invite\n");
+            printf("Use the command /invitelist to view a list of all your invites.\n\n");
+            break;
+        case INVITE_ACK:
+            sscanf(msg.data, "%s %s", name_buf, data_buf);
+            printf("Successfully sent an invite to %s to join the session %s\n", name_buf, data_buf);
+            break;
+        case INVITE_NAK:
+            printf("Could not send invite.\nReason: %s\n", msg.data);
+            break;
+        case IL_ACK:
+            printf("\n%s", msg.data);
+            break;
+        case IL_NAK:
+            printf("Could not create invite list.\nReason: %s\n", msg.data);
+            break;
+        case IR_ACK:
+            sscanf(msg.data, "%s %s", name_buf, data_buf);
+            if (!strcmp(data_buf, "yes"))
+                printf("You have accepted the invite and are now a member of %s\n", name_buf);
+            else
+                printf("You have declined the invite to join %s\n", name_buf);
+            break;
+        case IR_NAK:
+            printf("Could not respond to invite.\nReason: %s\n", msg.data);
             break;
         case LV_ACK:
             {

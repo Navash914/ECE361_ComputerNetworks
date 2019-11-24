@@ -26,7 +26,12 @@ bool client_join_session(char *input, Message *msg);
 bool client_message(char *input, Message *msg);
 bool client_message_specific(char *input, Message *msg);
 bool client_message_all(char *input, Message *msg);
+bool client_invite(char *input, Message *msg);
+bool client_invite_list(char *input, Message *msg);
+bool client_invite_response(char *input, Message *msg);
 bool client_leave_session(char *input, Message *msg);
+
+
 void client_response(Message msg);
 
 void extract_name_and_info(char *src, char *name, char *data);

@@ -30,6 +30,7 @@ typedef struct user {
     bool logged_in;
     Session *session;
     UserSessionList *joined_sessions;
+    UserSessionList *invited_sessions;
 
     pthread_t thread;
 

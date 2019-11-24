@@ -140,7 +140,9 @@ void clear_user_list(UserList *list) {
         next->prev = NULL;
         list->head->next = NULL;
         clear_usersession_list(list->head->joined_sessions);
+        clear_usersession_list(list->head->invited_sessions);
         free(list->head->joined_sessions);
+        free(list->head->invited_sessions);
 		free_user(list->head);
 		list->head = next;
 	}
@@ -250,7 +252,7 @@ void add_usersession(UserSessionList *list, UserSession *node) {
 }
 
 void delete_usersession(UserSessionList *list, UserSession *target) {
-    if (list == NULL) {
+        if (list == NULL) {
         printf("No list to delete from\n");
         return;
     }

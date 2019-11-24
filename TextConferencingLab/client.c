@@ -154,6 +154,15 @@ int main(int argc, char **argv) {
             case MESSAGE_ALL:
                 valid = client_message_all(buf, &msg);
                 break;
+            case INVITE:
+                valid = client_invite(buf, &msg);
+                break;
+            case INVITE_LIST:
+                valid = client_invite_list(buf, &msg);
+                break;
+            case INVITE_RESP:
+                valid = client_invite_response(buf, &msg);
+                break;
             case LEAVE_SESS:
                 valid = client_leave_session(buf, &msg);
                 break;

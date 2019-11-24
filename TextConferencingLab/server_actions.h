@@ -23,12 +23,16 @@ Message server_join_session(User *user, Message msg);
 Message server_message(User *user, Message msg);
 Message server_message_specific(User *user, Message msg);
 Message server_message_all(User *user, Message msg);
+Message server_invite(User *user, Message msg);
+Message server_invite_list(User *user, Message msg);
+Message server_invite_response(User *user, Message msg);
 Message server_leave_session(User *user, Message msg);
 
 void send_session_creation_notification(Session *session, Message msg);
 void send_session_join_notification(Session *session, Message msg);
 void send_session_leave_notification(Session *session, Message msg);
 
+void send_msg_to_user(User *user, Message msg);
 void server_broadcast(UserList *list, Message msg);
 
 #endif
