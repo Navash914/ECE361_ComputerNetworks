@@ -28,9 +28,11 @@ void print_commands() {
     printf("  /logout\n");
     printf("  /createsession <session_name>\n");
     printf("  /joinsession <session_name>\n");
-    printf("  /leavesession\n");
+    printf("  /leavesession [session_name]\n");
     printf("  /list\n");
-    printf("  /help\n");
+    printf("  /all <message>\n");
+    printf("  /msg <session_name> <message>\n");
+    printf("  /help\n");    // TODO: Add functionality for expanded help
     printf("\nWhile in a session, simply type your message to send it to other users in the session.\n");
     printf("\nYou can use /quit to exit the program anytime\n\n");
 }
