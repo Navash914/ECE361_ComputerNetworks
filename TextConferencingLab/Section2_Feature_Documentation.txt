@@ -1,0 +1,51 @@
+==================================================================================================================================
+
+FEATURE 1: Allowing users to join multiple sessions
+
+To implement this, each user has a list of sessions they have joined. One of these sessions is their 'active' session.
+
+Users will receive messages from all sessions they have joined. To identify which session the message is from, messages are 
+displayed on the console in the format '[session_name] username: message'.
+
+When a user sends a message, they will send this message to their currently active session.
+
+The user can use the '/joinsession <session_name>' command to join another session. If they are already a member of 
+this session, the command will simply switch their active session to the selected one.
+
+The user can send messages to sessions they have joined without having to switch their active session to the desired session.
+To do this, they can use the command '/msg <session_name> <message...>' and their message will be sent to the session session_name 
+instead of their currently active session (assuming they are a member of session_name).
+
+Users can also use the command '/all <message>' in order to send their message to all sessions that they are a member of.
+
+A user can leave a session using the '/leavesession [session_name]' command. If the session_name is omitted, the user will 
+by default leave their current active session. If the user leaves their current active session, they will automatically be 
+assigned a new active session (or none if they are not a member of any other sessions). This is communicated via the command 
+line. Leaving a session that is not the user's current active session will not affect the current active session.
+
+==================================================================================================================================
+
+FEATURE 2: Allowing users to invite other users to their sessions
+
+To implement this, each user has a list of sessions they are invited to.
+
+The '/invite <username> [session_name]' command can be used to invite a user to a session, assuming you are already 
+a member of the session. If session_name is omitted, the sender's currently active session will be used by default.
+
+The invite will be added to the receiver's invited list. The invitation will remain on the receiver's invite 
+list until they have either responded to the invite or joined the session explicitly using the /joinsession command. In the 
+latter case, the invite will simply be deleted. 
+
+A user cannot receive multiple invites to join the same session, and they also cannot receive an invitation 
+to join a session that they are already a member of. A user can, however, receive multiple invites given that they 
+are invites to different sessions, hence the purpose of an invite list. Invites are identified by the session they are 
+inviting to.
+
+A user can use the /invitelist command to view all their current invites. The list will show the session they are invited to 
+as well as its current members.
+
+To respond to an invite, a user can use the '/inviteresponse <session_name> <response>' command, where session_name identifies 
+the invite, and response is either 'yes' to accept the invite, or 'no' to decline. Accepting the invite automatically makes the 
+user a member of the session and sets it as their active session.
+
+==================================================================================================================================
