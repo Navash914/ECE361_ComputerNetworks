@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <pthread.h>
+#include <errno.h>
 
 #include "message.h"
 #include "database.h"
@@ -27,6 +28,7 @@
 
 #define LOOPBACK_ADDR "127.0.0.1"
 #define BACKLOG 10
+#define TIMEOUT 60
 
 // Subroutine for each client
 void client_subroutine(User *user) {
@@ -38,8 +40,14 @@ void client_subroutine(User *user) {
     while (true) {
         num_bytes = recv(user->sockfd, buf, BUF_SIZE-1, FLAGS);
         if (num_bytes < 0) {
-            printf("Error receiving message from client\n");
-            exit(1);
+	    if (errno == EAGAIN) {
+                // Timeout occurred
+                printf("Logging out %s for timeout\n", user->username);
+		exiting = true;
+            } else {
+                printf("Error receiving message from client\n");
+                exit(1);
+	    }
         }
         if (num_bytes == 0) {
             if (user->logged_in)
@@ -111,12 +119,13 @@ void client_subroutine(User *user) {
     // Client exit
     if (user->logged_in) {
         // Send reply for successful exit
-        Message msg;
+	Message msg;
         msg.type = EXIT;
-        msg.data[0] = '\0';
+	msg.data[0] = '\0';
         msg.size = 0;
         strcpy(msg.source, user->username);
         msg_to_str(buf, msg);
+	printf("%s\n", buf);
         num_bytes = send(user->sockfd, buf, BUF_SIZE-1, FLAGS);
         if (num_bytes < 0) {
             printf("Error sending message to client\n");
@@ -201,6 +210,10 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+    struct timeval tv;
+    tv.tv_sec = TIMEOUT;
+    tv.tv_usec = 0;
+
     while (true) {
         int new_sockfd = accept(socketfd, (struct sockaddr *) &client_addr, &client_addr_len);
         if (new_sockfd < 0) {
@@ -211,6 +224,12 @@ int main(int argc, char **argv) {
         char name[BUF_SIZE];
         inet_ntop(client_addr.sin_family, (struct sockaddr *) &client_addr, name, sizeof(name));
         printf("Received connection from %s\n", name);
+
+	if (setsockopt(new_sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+	    printf("Failed to config receive timeout\n");
+	    close(socketfd);
+	    exit(1);
+	}
 
         User *user = create_new_user(NULL, NULL);
         user->sockfd = new_sockfd;

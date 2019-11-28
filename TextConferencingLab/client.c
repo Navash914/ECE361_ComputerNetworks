@@ -56,7 +56,7 @@ void receive_msg(ClientStatus *status) {
             close(status->socketfd);
             status->socketfd = -1;
         } else if (msg.type == EXIT) {
-            printf("Successfully logged out.\n");
+	    printf("Successfully logged out.\n");
             status->connected = false;
             if (close(status->socketfd)) {
                 printf("Error closing socket\n");

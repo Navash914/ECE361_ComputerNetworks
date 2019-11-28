@@ -49,3 +49,10 @@ the invite, and response is either 'yes' to accept the invite, or 'no' to declin
 user a member of the session and sets it as their active session.
 
 ==================================================================================================================================
+
+FEATURE 3: User Timeout
+
+If the client has not sent any request to the server for a minute, the server assumes the client is inactive and logs them out.
+
+This is acheived by attaching a timer to the receiving socket on the server side. If this timer times out, the server sends an 
+exit message to the client. The client accepts the exit message and knows that it has been logged out.

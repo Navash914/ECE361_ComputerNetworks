@@ -438,7 +438,9 @@ void client_response(Message msg) {
             }
         case LV_NAK:
             printf("Could not leave session.\nReason: %s\n", msg.data);
-            break;    
+            break;   
+	default:
+		break;
     }
 }
 
